@@ -1,0 +1,316 @@
+<!--
+  The CMU Humanoid from dm_control, V2020 and position-controlled.
+-->
+<mujoco model="humanoid_CMU">
+  <compiler boundmass="1e-05" boundinertia="1e-11" coordinate="local" angle="radian" eulerseq="xyz"/>
+  <size njmax="500" nconmax="500"/>
+
+  <option timestep=".005"/>
+  <custom>
+    <numeric name="frameskip" data="6"/> 
+  </custom>
+  <visual>
+    <quality shadowsize="8192"/>
+  </visual>
+
+  <asset>
+    <material name="self" rgba=".7 .5 .3 1"/>
+  </asset>
+
+  <default>
+    <joint limited="true" solimplimit="0 0.99 0.01" stiffness="1" armature=".01" damping="1"/>
+    <geom size="0.03 0 0" condim="1" friction="0.7 0.005 0.0001" solref="0.015 1" solimp="0.99 0.99 0.003" density="674.0490479671504"/>
+    <general forcelimited="true" ctrllimited="true" ctrlrange="-1 1"/>
+    <default class="humanoid">
+      <geom type="capsule" material="self" group="2"/>
+      <default class="stiff_medium">
+        <joint stiffness="10" damping="2"/>
+      </default>
+      <default class="stiff_medium_higher">
+        <joint stiffness="50" damping="4"/>
+      </default>
+      <default class="stiff_high">
+        <joint stiffness="200" damping="5"/>
+      </default>
+      <default class="sensor_site">
+        <site type="sphere" size="0.01" group="4" rgba="1 0 0 .5"/>
+      </default>
+      <default class="contact">
+        <geom condim="3" friction="1. 0.005 0.0001" solref="0.015 1" solimp="0.98 0.98 0.001" priority="1"/>
+      </default>
+    </default>
+  </default>
+
+  <worldbody>
+    <body name="torso" childclass="humanoid">
+      <camera name="track" mode="trackcom" pos="0 -4 0" xyaxes="1 0 0 0 0 1"/>
+      <camera name="bodycam" pos="0 .3 .1" xyaxes="-1 0 0 0 1 0" fovy="80"/>
+      <freejoint name="root"/>
+      <site name="root" size=".01" rgba="0.5 0.5 0.5 0"/>
+      <geom name="torso" size="0.12 0.084" pos="0 -0.06 0" quat="1 0 -1 0"/>
+      <body name="lhipjoint">
+        <geom name="lhipjoint" size="0.0095999999999999992 0.026248356" density="674.0490479671504" pos="0.0611622 -0.055084439999999998 0.029667599999999995" quat="0.57079999999999997 -0.56660200000000005 -0.59426400000000001 0"/>
+        <body name="lfemur" pos="0.1223244 -0.11016888 0.059335319999999997" quat="0.98480800000000002 0 0 0.173648">
+          <joint name="lfemurrz" class="stiff_medium" pos="0 0 0" axis="0 0 1" range="-1.0471999999999999 1.22173" damping="10.0"/>
+          <joint name="lfemurry" class="stiff_medium" pos="0 0 0" axis="0 1 0" range="-1.22173 1.22173" damping="10.0"/>
+          <joint name="lfemurrx" class="stiff_medium" pos="0 0 0" axis="1 0 0" range="-2.7925300000000002 0.34906599999999999" damping="15.0"/>
+          <geom name="lfemur_upper" size="0.10200000000000001 0.099600000000000008" mass="0.0" pos="0 -0.13856760000000001 0" quat="0.69636399999999998 -0.69636399999999998 -0.12278799999999999 -0.12278799999999999"/>
+          <geom name="lfemur" size="0.084000000000000005 0.21867119999999998" density="674.0490479671504" pos="0 -0.24296759999999998 0" quat="0.69636399999999998 -0.69636399999999998 -0.12278799999999999 -0.12278799999999999"/>
+          <body name="ltibia" pos="0 -0.48593399999999998 0">
+            <joint name="ltibiarx" pos="0 0 0" axis="1 0 0" range="0.01 2.96706" damping="8.0"/>
+            <geom name="ltibia" size="0.048000000000000001 0.21907368000000002" density="674.0490479671504" pos="0 -0.2434152 0" quat="0.69636399999999998 -0.69636399999999998 -0.12278799999999999 -0.12278799999999999"/>
+            <body name="lfoot" pos="0 -0.49883159999999993 0" quat="1 -1 0 0">
+              <site name="lfoot_touch" class="sensor_site" type="capsule" size="0.029999999999999999 0.012" pos="0 0.024 -0.017999999999999999" zaxis="1 0 0"/>
+              <joint name="lfootrz" class="stiff_medium" pos="0 0 0" axis="0 0 1" range="-1.22173 0.34906599999999999" damping="3.0"/>
+              <joint name="lfootrx" class="stiff_medium" pos="0 0 0" axis="1 0 0" range="-0.78539800000000004 0.80000000000000004" damping="6.0"/>
+              <geom name="lfoot" class="contact" size="0.029999999999999999 0.096000000000000002" density="674.0490479671504" pos="-0.03239999700072 -0.059999999999999998 -0.01366536" quat="0.76725516000000005 -0.64051113999999998 0.023064870000000001 -0.023065829999999999"/>
+              <geom name="lfoot_ch" class="contact" size="0.029999999999999999 0.096000000000000002" density="674.0490479671504" pos="0.032400002999279996 -0.059999999999999998 -0.01366536" quat="0.72887265999999995 -0.59399462000000003 -0.24074282999999999 -0.2407425"/>
+              <body name="ltoes" pos="0 -0.18764640000000002 -0.027330719999999999">
+                <joint name="ltoesrx" pos="0 0 0" axis="1 0 0" range="-1.5708 0.34906599999999999" damping="1.0"/>
+                <geom name="ltoes0" class="contact" type="sphere" size="0.029999999999999999" density="674.0490479671504" pos="0 -0.012 -0.012"/>
+                <geom name="ltoes1" class="contact" type="sphere" size="0.029999999999999999" density="674.0490479671504" pos="0.035999999999999997 -0.012 -0.012"/>
+                <geom name="ltoes2" class="contact" type="sphere" size="0.029999999999999999" density="674.0490479671504" pos="-0.035999999999999997 -0.012 -0.012"/>
+                <site name="ltoes_touch" class="sensor_site" type="capsule" size="0.029999999999999999 0.035999999999999997" pos="0 -0.012 -0.024" zaxis="1 0 0"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="rhipjoint">
+        <geom name="rhipjoint" size="0.0095999999999999992 0.026248356" density="674.0490479671504" pos="-0.0611622 -0.055084439999999998 0.029667599999999995" quat="0.57485600000000003 -0.54759400000000003 0.60801400000000005 0"/>
+        <body name="rfemur" pos="-0.1223244 -0.11016888 0.059335319999999997" quat="0.98480800000000002 0 0 -0.173648">
+          <joint name="rfemurrz" class="stiff_medium" pos="0 0 0" axis="0 0 1" range="-1.22173 1.0471999999999999" damping="10.0"/>
+          <joint name="rfemurry" class="stiff_medium" pos="0 0 0" axis="0 1 0" range="-1.22173 1.22173" damping="10.0"/>
+          <joint name="rfemurrx" class="stiff_medium" pos="0 0 0" axis="1 0 0" range="-2.7925300000000002 0.34906599999999999" damping="15.0"/>
+          <geom name="rfemur_upper" size="0.10200000000000001 0.099600000000000008" mass="0.0" pos="0 -0.13856760000000001 0" quat="0.69636399999999998 -0.69636399999999998 0.12278799999999999 0.12278799999999999"/>
+          <geom name="rfemur" size="0.084000000000000005 0.21867119999999998" density="674.0490479671504" pos="0 -0.24296759999999998 0" quat="0.69636399999999998 -0.69636399999999998 0.12278799999999999 0.12278799999999999"/>
+          <body name="rtibia" pos="0 -0.48593399999999998 0">
+            <joint name="rtibiarx" pos="0 0 0" axis="1 0 0" range="0.01 2.96706" damping="8.0"/>
+            <geom name="rtibia" size="0.048000000000000001 0.21907368000000002" density="674.0490479671504" pos="0 -0.2434152 0" quat="0.69636399999999998 -0.69636399999999998 0.12278799999999999 0.12278799999999999"/>
+            <body name="rfoot" pos="0 -0.49883159999999993 0" quat="0.70710700000000004 -0.70710700000000004 0 0">
+              <site name="rfoot_touch" class="sensor_site" type="capsule" size="0.029999999999999999 0.012" pos="0 0.024 -0.017999999999999999" zaxis="1 0 0"/>
+              <joint name="rfootrz" class="stiff_medium" pos="0 0 0" axis="0 0 1" range="-0.34906599999999999 1.22173" damping="3.0"/>
+              <joint name="rfootrx" class="stiff_medium" pos="0 0 0" axis="1 0 0" range="-0.78539800000000004 0.80000000000000004" damping="6.0"/>
+              <geom name="rfoot" class="contact" size="0.029999999999999999 0.096000000000000002" density="674.0490479671504" pos="-0.032399995837919998 -0.059999999999999998 -0.01366536" quat="0.73520686999999996 -0.58633522999999999 0.24050108000000001 0.24050078999999999"/>
+              <geom name="rfoot_ch" class="contact" size="0.029999999999999999 0.096000000000000002" density="674.0490479671504" pos="0.032400004162079998 -0.059999999999999998 -0.01366536" quat="0.77312468999999995 -0.63323099999999999 -0.025458459999999999 0.025458359999999999"/>
+              <body name="rtoes" pos="0 -0.18764640000000002 -0.027330719999999999">
+                <joint name="rtoesrx" pos="0 0 0" axis="1 0 0" range="-1.5708 0.34906599999999999" damping="1.0"/>
+                <geom name="rtoes0" class="contact" type="sphere" size="0.029999999999999999" density="674.0490479671504" pos="0 -0.012 -0.012"/>
+                <geom name="rtoes1" class="contact" type="sphere" size="0.029999999999999999" density="674.0490479671504" pos="0.035999999999999997 -0.012 -0.012"/>
+                <geom name="rtoes2" class="contact" type="sphere" size="0.029999999999999999" density="674.0490479671504" pos="-0.035999999999999997 -0.012 -0.012"/>
+                <site name="rtoes_touch" class="sensor_site" type="capsule" size="0.029999999999999999 0.035999999999999997" pos="0 -0.012 -0.024" zaxis="1 0 0"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="lowerback">
+        <joint name="lowerbackrz" class="stiff_high" pos="0 0 0" axis="0 0 1" range="-0.52359900000000004 0.52359900000000004" damping="20.0"/>
+        <joint name="lowerbackry" class="stiff_high" pos="0 0 0" axis="0 1 0" range="-0.52359900000000004 0.52359900000000004" damping="20.0"/>
+        <joint name="lowerbackrx" class="stiff_medium" pos="0 0 0" axis="1 0 0" range="-0.34906599999999999 0.78539800000000004" damping="15.0"/>
+        <geom name="lowerback" size="0.10200000000000001 0.054480192000000004" density="674.0490479671504" pos="0.0033951719999999997 0.067927799999999997 0.012" quat="1 0 1 0"/>
+        <body name="upperback" pos="0.00067903439999999994 0.13585559999999999 -0.0096635759999999984">
+          <joint name="upperbackrz" class="stiff_high" pos="0 0 0" axis="0 0 1" range="-0.52359900000000004 0.52359900000000004" damping="12.0"/>
+          <joint name="upperbackry" class="stiff_high" pos="0 0 0" axis="0 1 0" range="-0.52359900000000004 0.52359900000000004" damping="8.0"/>
+          <joint name="upperbackrx" class="stiff_medium" pos="0 0 0" axis="1 0 0" range="-0.34906599999999999 0.78539800000000004" damping="15.0"/>
+          <geom name="upperback" size="0.108 0.054511391999999999" density="674.0490479671504" pos="0.00030751680000000003 0.068136240000000001 0.024" quat="1 0 1 0"/>
+          <body name="thorax" pos="0.00061503360000000006 0.13627199999999998 0.0011241852000000001">
+            <joint name="thoraxrz" class="stiff_high" pos="0 0 0" axis="0 0 1" range="-0.52359900000000004 0.52359900000000004" damping="12.0"/>
+            <joint name="thoraxry" class="stiff_high" pos="0 0 0" axis="0 1 0" range="-0.52359900000000004 0.52359900000000004" damping="8.0"/>
+            <joint name="thoraxrx" class="stiff_medium" pos="0 0 0" axis="1 0 0" range="-0.34906599999999999 0.78539800000000004" damping="15.0"/>
+            <geom name="thorax" size="0.11399999999999999 0.068424719999999994" density="674.0490479671504" pos="0 0.068366999999999997 0.024" quat="1 0 1 0"/>
+            <body name="lowerneck" pos="0 0.13673399999999999 0.0056164439999999991">
+              <joint name="lowerneckrz" class="stiff_medium_higher" pos="0 0 0" axis="0 0 1" range="-0.52359900000000004 0.52359900000000004" damping="20.0"/>
+              <joint name="lowerneckry" class="stiff_medium_higher" pos="0 0 0" axis="0 1 0" range="-0.52359900000000004 0.52359900000000004" damping="20.0"/>
+              <joint name="lowerneckrx" class="stiff_medium_higher" pos="0 0 0" axis="1 0 0" range="-0.34906599999999999 0.78539800000000004" damping="20.0"/>
+              <geom name="lowerneck" size="0.089999999999999997 0.027350699999999999" density="674.0490479671504" pos="-0.001980852 0.054288119999999995 0.0064123079999999994" quat="1 1 0 0"/>
+              <body name="upperneck" pos="-0.0039617159999999997 0.10857611999999998 0.01282464">
+                <joint name="upperneckrz" class="stiff_medium_higher" pos="0 0 0" axis="0 0 1" range="-0.52359900000000004 0.52359900000000004" damping="10.0"/>
+                <joint name="upperneckry" class="stiff_medium_higher" pos="0 0 0" axis="0 1 0" range="-0.52359900000000004 0.52359900000000004" damping="10.0"/>
+                <joint name="upperneckrx" class="stiff_medium_higher" pos="0 0 0" axis="1 0 0" range="-0.34906599999999999 0.78539800000000004" damping="10.0"/>
+                <geom name="upperneck" size="0.059999999999999998 0.02703264" density="674.0490479671504" pos="0.00060105 0.053994719999999996 -0.0026957280000000001" quat="1 1 0 0"/>
+                <body name="head" pos="0.0012021 0.156 -0.0053914560000000002">
+                  <camera name="egocentric" fovy="80.0" pos="0 0 0" xyaxes="-1 0 0 0 1 0"/>
+                  <joint name="headrz" class="stiff_medium_higher" pos="0 0 0" axis="0 0 1" range="-0.52359900000000004 0.52359900000000004" damping="2.0"/>
+                  <joint name="headry" class="stiff_medium_higher" pos="0 0 0" axis="0 1 0" range="-0.52359900000000004 0.52359900000000004" damping="2.0"/>
+                  <joint name="headrx" class="stiff_medium_higher" pos="0 0 0" axis="1 0 0" range="-0.34906599999999999 0.78539800000000004" damping="2.0"/>
+                  <geom name="head" size="0.11399999999999999 0.028924800000000001" density="674.0490479671504" pos="0.00040975799999999998 0.057820799999999992 0.029999999999999999" quat="1 1 0 0"/>
+                  <geom name="face" type="capsule" contype="0" conaffinity="0" size="0.078 0.016799999999999999" mass="0.0" pos="0.00040975799999999998 0.057820799999999992 0.012" quat="0.71788700000000005 0.69614200000000004 -0.0049333399999999996 0"/>
+                  <body name="face" pos="0 0.046800000000000001 0.13200000000000001">
+                    <geom name="nose" type="capsule" contype="0" conaffinity="0" group="1" size="0.024 0.012" mass="0.0" pos="0 0 0" quat="1 0.69999999999999996 0 0"/>
+                  </body>
+                </body>
+              </body>
+            </body>
+            <body name="lclavicle" pos="0 0.13673399999999999 0.0056164439999999991">
+              <joint name="lclaviclerz" class="stiff_high" pos="0 0 0" axis="0 0 1" range="0 0.34906599999999999" damping="20.0"/>
+              <joint name="lclaviclery" class="stiff_high" pos="0 0 0" axis="0 1 0" range="-0.34906599999999999 0.17453299999999999" damping="20.0"/>
+              <geom name="lclavicle" size="0.089999999999999997 0.071999999999999995" density="674.0490479671504" pos="0.11025803999999999 0.045916320000000004 0.0064284480000000007" quat="0.68799999999999994 0.27900000000000003 -0.67000000000000004 0"/>
+              <body name="lhumerus" pos="0.216 0.108 0.012856920000000001" quat="0.18301300000000001 0.68301299999999998 -0.68301299999999998 0.18301300000000001">
+                <joint name="lhumerusrz" class="stiff_medium" pos="0 0 0" axis="0 0 1" range="-1.1000000000000001 1.5708" damping="6.0"/>
+                <joint name="lhumerusry" class="stiff_medium" pos="0 0 0" axis="0 1 0" range="-1.5708 1.5708" damping="6.0"/>
+                <joint name="lhumerusrx" class="stiff_medium" pos="0 0 0" axis="1 0 0" range="-1.0471999999999999 1.5708" damping="6.0"/>
+                <site name="lhumerus_ft" class="sensor_site"/>
+                <geom name="lhumerus" size="0.0504 0.14949467999999999" density="674.0490479671504" pos="0 -0.16610519999999998 0" quat="0.61237200000000003 -0.61237200000000003 0.35355300000000001 0.35355300000000001"/>
+                <body name="lradius" pos="0 -0.3322116 0">
+                  <joint name="lradiusrx" pos="0 0 0" axis="1 0 0" range="-0.17453299999999999 2.96706" damping="5.0"/>
+                  <geom name="lradius" size="0.035999999999999997 0.098029331999999997" density="674.0490479671504" pos="0 -0.10892148 0" quat="0.61237200000000003 -0.61237200000000003 0.35355300000000001 0.35355300000000001"/>
+                  <site name="lwrist" pos="0 -0.21784319999999999 0" quat="-0.5 0 0.86602500000000004 0"/>
+                  <body name="lwrist" pos="0 -0.21784319999999999 0" quat="-0.5 0 0.86602500000000004 0">
+                    <joint name="lwristry" pos="0 0 0" axis="0 1 0" range="0 3.1415899999999999" damping="1.0"/>
+                    <geom name="lwrist" size="0.024 0.035999999999999997" density="674.0490479671504" pos="0 -0.035999999999999997 0" quat="1.59389e-11 -1.5938800000000001e-11 -0.70710700000000004 -0.70710700000000004"/>
+                    <body name="lhand" pos="0 -0.10892112 0">
+                      <joint name="lhandrz" pos="0 0 0" axis="0 0 1" range="-0.78539800000000004 0.78539800000000004" damping="1.0"/>
+                      <joint name="lhandrx" pos="0 0 0" axis="1 0 0" range="-1.5708 1.5708" damping="1.0"/>
+                      <site name="lhand_touch" class="sensor_site" type="ellipsoid" size="0.0144 0.0060000000000000001 0.017999999999999999" pos="0 -0.020102399999999999 -0.024" quat="0 0 -1 -1"/>
+                      <geom name="lhand" class="contact" type="ellipsoid" size="0.042000000000000003 0.024 0.053999999999999999" density="674.0490479671504" pos="0 -0.020102399999999999 0" quat="0 0 -1 -1"/>
+                      <body name="lfingers" pos="0 -0.089999999999999997 0">
+                        <joint name="lfingersrx" pos="0 0.017999999999999999 0" axis="1 0 0" range="0 1.5708" damping="1.0"/>
+                        <site name="lfingers_touch" class="sensor_site" type="box" size="0.0276 0.015599999999999999 0.0035999999999999999" pos="0 -0.0504 -0.0083999999999999995"/>
+                        <geom name="lfinger0" class="contact" size="0.0077999999999999996 0.048000000000000001" density="674.0490479671504" pos="-0.028799999999999999 -0.029999999999999999 0" quat="1 -1 0 0"/>
+                        <geom name="lfinger1" class="contact" size="0.0077999999999999996 0.048000000000000001" density="674.0490479671504" pos="-0.0095999999999999992 -0.035999999999999997 0" quat="1 -1 0 0"/>
+                        <geom name="lfinger2" class="contact" size="0.0071999999999999998 0.048000000000000001" density="674.0490479671504" pos="0.0095999999999999992 -0.035999999999999997 0" quat="1 -1 0 0"/>
+                        <geom name="lfinger3" class="contact" size="0.0065999999999999991 0.048000000000000001" density="674.0490479671504" pos="0.028799999999999999 -0.029999999999999999 0" quat="1 -1 0 0"/>
+                      </body>
+                      <body name="lthumb" pos="-0.029999999999999999 0 0" quat="0.92388000000000003 0 0 -0.382683">
+                        <joint name="lthumbrz" pos="0 0 0" axis="0 0 1" range="-0.78539800000000004 0.78539800000000004" damping="1.0"/>
+                        <joint name="lthumbrx" pos="0 0 0" axis="1 0 0" range="0 1.5700000000000001" damping="1.0"/>
+                        <site name="lthumb_touch" class="sensor_site" type="box" size="0.0071999999999999998 0.015599999999999999 0.0035999999999999999" pos="0 -0.051599999999999993 -0.0083999999999999995"/>
+                        <geom name="lthumb" class="contact" size="0.0095999999999999992 0.035999999999999997" density="674.0490479671504" pos="0 -0.035999999999999997 0" quat="0 0 -1 -1"/>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+            <body name="rclavicle" pos="0 0.13673399999999999 0.0056164439999999991">
+              <joint name="rclaviclerz" class="stiff_high" pos="0 0 0" axis="0 0 1" range="-0.34906599999999999 0" damping="20.0"/>
+              <joint name="rclaviclery" class="stiff_high" pos="0 0 0" axis="0 1 0" range="-0.17453299999999999 0.34906599999999999" damping="20.0"/>
+              <geom name="rclavicle" size="0.089999999999999997 0.071999999999999995" density="674.0490479671504" pos="-0.11025803999999999 0.045916320000000004 0.0064284480000000007" quat="0.68799999999999994 0.27900000000000003 0.67000000000000004 0"/>
+              <body name="rhumerus" pos="-0.216 0.108 0.012856920000000001" quat="0.18301300000000001 0.68301299999999998 0.68301299999999998 -0.18301300000000001">
+                <joint name="rhumerusrz" class="stiff_medium" pos="0 0 0" axis="0 0 1" range="-1.1000000000000001 1.5708" damping="6.0"/>
+                <joint name="rhumerusry" class="stiff_medium" pos="0 0 0" axis="0 1 0" range="-1.5708 1.5708" damping="6.0"/>
+                <joint name="rhumerusrx" class="stiff_medium" pos="0 0 0" axis="1 0 0" range="-1.0471999999999999 1.5708" damping="6.0"/>
+                <site name="rhumerus_ft" class="sensor_site"/>
+                <geom name="rhumerus" size="0.0504 0.14949467999999999" density="674.0490479671504" pos="0 -0.16610519999999998 0" quat="0.61237200000000003 -0.61237200000000003 -0.35355300000000001 -0.35355300000000001"/>
+                <body name="rradius" pos="0 -0.3322116 0">
+                  <joint name="rradiusrx" pos="0 0 0" axis="1 0 0" range="-0.17453299999999999 2.96706" damping="5.0"/>
+                  <geom name="rradius" size="0.035999999999999997 0.098029331999999997" density="674.0490479671504" pos="0 -0.10892148 0" quat="0.61238000000000004 -0.61237200000000003 -0.35355399999999998 -0.35354099999999999"/>
+                  <body name="rwrist" pos="0 -0.21784319999999999 0" quat="-0.5 0 -0.86602500000000004 0">
+                    <joint name="rwristry" pos="0 0 0" axis="0 1 0" range="-3.1415899999999999 0" damping="1.0"/>
+                    <geom name="rwrist" size="0.024 0.035999999999999997" density="674.0490479671504" pos="0 -0.035999999999999997 0" quat="0 0 1 1"/>
+                    <body name="rhand" pos="0 -0.10892112 0">
+                      <joint name="rhandrz" pos="0 0 0" axis="0 0 1" range="-0.78539800000000004 0.78539800000000004" damping="1.0"/>
+                      <joint name="rhandrx" pos="0 0 0" axis="1 0 0" range="-1.5708 1.5708" damping="1.0"/>
+                      <site name="rhand_touch" class="sensor_site" type="ellipsoid" size="0.0144 0.0060000000000000001 0.017999999999999999" pos="0 -0.020102399999999999 -0.024" quat="0 0 1 1"/>
+                      <geom name="rhand" class="contact" type="ellipsoid" size="0.042000000000000003 0.024 0.053999999999999999" density="674.0490479671504" pos="0 -0.020102399999999999 0" quat="0 0 1 1"/>
+                      <body name="rfingers" pos="0 -0.089999999999999997 0">
+                        <joint name="rfingersrx" pos="0 0.017999999999999999 0" axis="1 0 0" range="0 1.5708" damping="1.0"/>
+                        <site name="rfingers_touch" class="sensor_site" type="box" size="0.0276 0.015599999999999999 0.0035999999999999999" pos="0 -0.0504 -0.0083999999999999995"/>
+                        <geom name="rfinger0" class="contact" size="0.0077999999999999996 0.048000000000000001" density="674.0490479671504" pos="0.028799999999999999 -0.029999999999999999 0" quat="1 -1 0 0"/>
+                        <geom name="rfinger1" class="contact" size="0.0077999999999999996 0.048000000000000001" density="674.0490479671504" pos="0.0095999999999999992 -0.035999999999999997 0" quat="1 -1 0 0"/>
+                        <geom name="rfinger2" class="contact" size="0.0071999999999999998 0.048000000000000001" density="674.0490479671504" pos="-0.0095999999999999992 -0.035999999999999997 0" quat="1 -1 0 0"/>
+                        <geom name="rfinger3" class="contact" size="0.0065999999999999991 0.048000000000000001" density="674.0490479671504" pos="-0.028799999999999999 -0.029999999999999999 0" quat="1 -1 0 0"/>
+                      </body>
+                      <body name="rthumb" pos="0.029999999999999999 0 0" quat="0.92388000000000003 0 0 0.382683">
+                        <joint name="rthumbrz" pos="0 0 0" axis="0 0 1" range="-0.78539800000000004 0.78539800000000004" damping="1.0"/>
+                        <joint name="rthumbrx" pos="0 0 0" axis="1 0 0" range="0 1.5700000000000001" damping="1.0"/>
+                        <site name="rthumb_touch" class="sensor_site" type="box" size="0.0071999999999999998 0.015599999999999999 0.0035999999999999999" pos="0 -0.051599999999999993 -0.0083999999999999995"/>
+                        <geom name="rthumb" class="contact" size="0.0095999999999999992 0.035999999999999997" density="674.0490479671504" pos="0 -0.035999999999999997 0" quat="6.2177300000000004e-11 -6.3528400000000006e-11 0.70710700000000004 0.70710700000000004"/>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <contact>
+    <exclude body1="lclavicle" body2="rclavicle"/>
+    <exclude body1="lowerneck" body2="lclavicle"/>
+    <exclude body1="lowerneck" body2="rclavicle"/>
+    <exclude body1="upperneck" body2="lclavicle"/>
+    <exclude body1="upperneck" body2="rclavicle"/>
+  </contact>
+
+  <actuator>
+    <general name="headrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-40 40" joint="headrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="22.689279999999997" biasprm="8.7266399999999997 -40 0"/>
+    <general name="headry" ctrllimited="true" ctrlrange="-1 1" forcerange="-40 40" joint="headry" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="20.943960000000001" biasprm="0 -40 0"/>
+    <general name="headrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-40 40" joint="headrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="20.943960000000001" biasprm="0 -40 0"/>
+    <general name="lclaviclery" ctrllimited="true" ctrlrange="-1 1" forcerange="-80 80" joint="lclaviclery" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="20.943959999999997" biasprm="-6.981320000000002 -80 0"/>
+    <general name="lclaviclerz" ctrllimited="true" ctrlrange="-1 1" forcerange="-80 80" joint="lclaviclerz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="13.96264" biasprm="13.96264 -80 0"/>
+    <general name="lfemurrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-300 300" joint="lfemurrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="471.23940000000005" biasprm="-366.51960000000003 -300 0"/>
+    <general name="lfemurry" ctrllimited="true" ctrlrange="-1 1" forcerange="-200 200" joint="lfemurry" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="244.346" biasprm="0 -200 0"/>
+    <general name="lfemurrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-200 200" joint="lfemurrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="226.893" biasprm="17.453000000000031 -200 0"/>
+    <general name="lfingersrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="lfingersrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="15.708" biasprm="15.708 -20 0"/>
+    <general name="lfootrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-120 120" joint="lfootrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="95.12388" biasprm="0.87612000000000023 -120 0"/>
+    <general name="lfootrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-50 50" joint="lfootrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="39.2699" biasprm="-21.816599999999998 -50 0"/>
+    <general name="lhandrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="lhandrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="31.416" biasprm="0 -20 0"/>
+    <general name="lhandrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="lhandrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="15.70796" biasprm="0 -20 0"/>
+    <general name="lhumerusrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-120 120" joint="lhumerusrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="157.07999999999998" biasprm="31.416000000000004 -120 0"/>
+    <general name="lhumerusry" ctrllimited="true" ctrlrange="-1 1" forcerange="-120 120" joint="lhumerusry" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="188.49600000000001" biasprm="0 -120 0"/>
+    <general name="lhumerusrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-120 120" joint="lhumerusrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="160.24799999999999" biasprm="28.24799999999998 -120 0"/>
+    <general name="lowerbackrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-300 300" joint="lowerbackrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="170.16959999999997" biasprm="65.449799999999996 -300 0"/>
+    <general name="lowerbackry" ctrllimited="true" ctrlrange="-1 1" forcerange="-180 180" joint="lowerbackry" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="94.247820000000004" biasprm="0 -180 0"/>
+    <general name="lowerbackrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-200 200" joint="lowerbackrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="104.71980000000001" biasprm="0 -200 0"/>
+    <general name="lowerneckrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-120 120" joint="lowerneckrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="68.06783999999999" biasprm="26.179919999999996 -120 0"/>
+    <general name="lowerneckry" ctrllimited="true" ctrlrange="-1 1" forcerange="-120 120" joint="lowerneckry" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="62.831880000000005" biasprm="0 -120 0"/>
+    <general name="lowerneckrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-120 120" joint="lowerneckrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="62.831880000000005" biasprm="0 -120 0"/>
+    <general name="lradiusrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-90 90" joint="lradiusrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="141.37168499999999" biasprm="125.663715 -90 0"/>
+    <general name="lthumbrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="lthumbrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="15.700000000000001" biasprm="15.700000000000001 -20 0"/>
+    <general name="lthumbrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="lthumbrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="15.70796" biasprm="0 -20 0"/>
+    <general name="ltibiarx" ctrllimited="true" ctrlrange="-1 1" forcerange="-160 160" joint="ltibiarx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="236.56480000000002" biasprm="238.16480000000001 -160 0"/>
+    <general name="ltoesrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="ltoesrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="19.198659999999997" biasprm="-12.21734 -20 0"/>
+    <general name="lwristry" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="lwristry" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="31.415900000000001" biasprm="31.415900000000001 -20 0"/>
+    <general name="rclaviclery" ctrllimited="true" ctrlrange="-1 1" forcerange="-80 80" joint="rclaviclery" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="20.943959999999997" biasprm="6.9813199999999975 -80 0"/>
+    <general name="rclaviclerz" ctrllimited="true" ctrlrange="-1 1" forcerange="-80 80" joint="rclaviclerz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="13.96264" biasprm="-13.96264 -80 0"/>
+    <general name="rfemurrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-300 300" joint="rfemurrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="471.23940000000005" biasprm="-366.51960000000003 -300 0"/>
+    <general name="rfemurry" ctrllimited="true" ctrlrange="-1 1" forcerange="-200 200" joint="rfemurry" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="244.346" biasprm="0 -200 0"/>
+    <general name="rfemurrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-200 200" joint="rfemurrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="226.893" biasprm="-17.452999999999985 -200 0"/>
+    <general name="rfingersrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="rfingersrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="15.708" biasprm="15.708 -20 0"/>
+    <general name="rfootrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-120 120" joint="rfootrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="95.12388" biasprm="0.87612000000000023 -120 0"/>
+    <general name="rfootrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-50 50" joint="rfootrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="39.2699" biasprm="21.816600000000001 -50 0"/>
+    <general name="rhandrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="rhandrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="31.416" biasprm="0 -20 0"/>
+    <general name="rhandrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="rhandrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="15.70796" biasprm="0 -20 0"/>
+    <general name="rhumerusrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-120 120" joint="rhumerusrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="157.07999999999998" biasprm="31.416000000000004 -120 0"/>
+    <general name="rhumerusry" ctrllimited="true" ctrlrange="-1 1" forcerange="-120 120" joint="rhumerusry" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="188.49600000000001" biasprm="0 -120 0"/>
+    <general name="rhumerusrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-120 120" joint="rhumerusrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="160.24799999999999" biasprm="28.24799999999998 -120 0"/>
+    <general name="rradiusrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-90 90" joint="rradiusrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="141.37168499999999" biasprm="125.663715 -90 0"/>
+    <general name="rthumbrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="rthumbrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="15.700000000000001" biasprm="15.700000000000001 -20 0"/>
+    <general name="rthumbrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="rthumbrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="15.70796" biasprm="0 -20 0"/>
+    <general name="rtibiarx" ctrllimited="true" ctrlrange="-1 1" forcerange="-160 160" joint="rtibiarx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="236.56480000000002" biasprm="238.16480000000001 -160 0"/>
+    <general name="rtoesrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="rtoesrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="19.198659999999997" biasprm="-12.21734 -20 0"/>
+    <general name="rwristry" ctrllimited="true" ctrlrange="-1 1" forcerange="-20 20" joint="rwristry" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="31.415900000000001" biasprm="-31.415900000000001 -20 0"/>
+    <general name="thoraxrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-300 300" joint="thoraxrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="170.16959999999997" biasprm="65.449799999999996 -300 0"/>
+    <general name="thoraxry" ctrllimited="true" ctrlrange="-1 1" forcerange="-80 80" joint="thoraxry" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="41.887920000000001" biasprm="0 -80 0"/>
+    <general name="thoraxrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-200 200" joint="thoraxrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="104.71980000000001" biasprm="0 -200 0"/>
+    <general name="upperbackrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-300 300" joint="upperbackrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="170.16959999999997" biasprm="65.449799999999996 -300 0"/>
+    <general name="upperbackry" ctrllimited="true" ctrlrange="-1 1" forcerange="-80 80" joint="upperbackry" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="41.887920000000001" biasprm="0 -80 0"/>
+    <general name="upperbackrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-200 200" joint="upperbackrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="104.71980000000001" biasprm="0 -200 0"/>
+    <general name="upperneckrx" ctrllimited="true" ctrlrange="-1 1" forcerange="-60 60" joint="upperneckrx" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="34.033919999999995" biasprm="13.089959999999998 -60 0"/>
+    <general name="upperneckry" ctrllimited="true" ctrlrange="-1 1" forcerange="-60 60" joint="upperneckry" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="31.415940000000003" biasprm="0 -60 0"/>
+    <general name="upperneckrz" ctrllimited="true" ctrlrange="-1 1" forcerange="-60 60" joint="upperneckrz" dyntype="filter" biastype="affine" dynprm="0.029999999999999999" gainprm="31.415940000000003" biasprm="0 -60 0"/>
+  </actuator>
+
+  <sensor>
+    <velocimeter name="sensor_root_veloc" site="root"/>
+    <gyro name="sensor_root_gyro" site="root"/>
+    <accelerometer name="sensor_root_accel" site="root"/>
+    <touch name="sensor_touch_lhand" site="lhand_touch"/>
+    <touch name="sensor_touch_lfingers" site="lfingers_touch"/>
+    <touch name="sensor_touch_lthumb" site="lthumb_touch"/>
+    <touch name="sensor_touch_rhand" site="rhand_touch"/>
+    <touch name="sensor_touch_rfingers" site="rfingers_touch"/>
+    <touch name="sensor_touch_rthumb" site="rthumb_touch"/>
+    <touch name="sensor_touch_ltoes" site="ltoes_touch"/>
+    <touch name="sensor_touch_rtoes" site="rtoes_touch"/>
+    <touch name="sensor_touch_rfoot" site="rfoot_touch"/>
+    <touch name="sensor_touch_lfoot" site="lfoot_touch"/>
+    <torque name="sensor_torque_lhumerus" site="lhumerus_ft"/>
+    <torque name="sensor_torque_rhumerus" site="rhumerus_ft"/>
+  </sensor>
+</mujoco>

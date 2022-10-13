@@ -26,6 +26,8 @@ env_name = {
     'stairs': 'BiskStairs-v1',
     'goalwall': 'BiskGoalWall-v1',
     'polebalance': 'BiskPoleBalance-v1',
+    'gototarget': 'BiskGoToTarget-v1',
+    'butterflies': 'BiskButterflies-v1',
 }[args.task.lower()]
 
 env = gym.make(env_name, robot=args.robot)
@@ -70,6 +72,7 @@ def tick():
     else:
         a[2] = -1
     '''
+    d = False
     obs, r, d, i = env.step(a)
     step += 1
     if step > 200 or d:

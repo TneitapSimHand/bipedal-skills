@@ -9,8 +9,6 @@ from typing import Tuple, Iterable
 import logging
 
 import numpy as np
-from dm_control import mjcf, mujoco
-from dm_control.mujoco.wrapper.mjbindings import mjlib
 from gym.utils import seeding
 
 log = logging.getLogger(__name__)
@@ -18,10 +16,11 @@ log = logging.getLogger(__name__)
 FANCY_SKYBOX = False
 
 
-def root_with_floor() -> mjcf.RootElement:
+def root_with_floor() -> 'dm_control.mjcf.RootElement':
     '''
     Constructs a root element with the commonly used checkered floor.
     '''
+    from dm_control import mjcf
     root = mjcf.RootElement()
     if FANCY_SKYBOX:
         root.asset.add(
@@ -90,8 +89,9 @@ def asset_path() -> str:
 
 
 def add_robot(
-    root: mjcf.RootElement, kind: str, name: str, xyoff=None
-) -> Tuple[mjcf.Element, np.ndarray]:
+    root: 'dm_control.mjcf.RootElement', kind: str, name: str, xyoff=None,
+    init=None,
+) -> Tuple['dm_control.mjcf.Element', np.ndarray]:
     '''
     Add a robot to the root element.
     Returns the attachement frame the original position of the robot's torso.
@@ -99,7 +99,10 @@ def add_robot(
     (so that qpos can be initialized accordingly); otherwise, (0, 0, 0) is
     returned.
     '''
+    from dm_control import mjcf
     rm = mjcf.from_path(f'{asset_path()}/{kind.lower()}.xml')
+    if init is not None:
+        init(rm, name)
     rm.model = name
     torso = rm.find('body', 'torso')
     if torso is None:
@@ -109,7 +112,9 @@ def add_robot(
     # the default qpos manually later. dm_control's attachment frame
     # logic (apparently?) resets the frame of reference of the freejoint.
     torso.pos = [0, 0, 0]
-    if xyoff:
+    if pos is None:
+        pos = torso.pos
+    if xyoff is not None:
         pos[0] += xyoff[0]
         pos[1] += xyoff[1]
     root_joint = torso.find('joint', 'root')
@@ -127,13 +132,13 @@ def add_robot(
 
 
 def add_box(
-    root: mjcf.RootElement,
+    root: 'dm_control.mjcf.RootElement',
     name: str,
     size: Iterable[float],
     rgba: Iterable[float] = None,
     with_body: bool = False,
     **kwargs,
-) -> mjcf.Element:
+) -> 'dm_control.mjcf.Element':
     if rgba is None:
         rgba = np.array([0.8, 0.9, 0.8, 1])
     body = root.worldbody
@@ -152,12 +157,12 @@ def add_box(
 
 
 def add_capsule(
-    root: mjcf.RootElement,
+    root: 'dm_control.mjcf.RootElement',
     name: str,
     rgba: Iterable[float] = None,
     with_body: bool = False,
     **kwargs,
-) -> mjcf.Element:
+) -> 'dm_control.mjcf.Element':
     if rgba is None:
         rgba = np.array([0.8, 0.9, 0.8, 1])
     body = root.worldbody
@@ -174,7 +179,7 @@ def add_capsule(
     return body if with_body else box
 
 
-def add_fwd_corridor(root: mjcf.RootElement, W=4):
+def add_fwd_corridor(root: 'dm_control.mjcf.RootElement', W=4):
     WH = 2
     wall_alpha = 0.0  # for debugging
     # Change rendering of floor to fit the intended path
@@ -214,12 +219,12 @@ def add_fwd_corridor(root: mjcf.RootElement, W=4):
 # The ball element follows the element definitions in quadruped.xml from
 # dm_control:
 # https://github.com/deepmind/dm_control/blob/33cea51/dm_control/suite/quadruped.xml
-def add_ball(root: mjcf.RootElement,
+def add_ball(root: 'dm_control.mjcf.RootElement',
              name: str,
              size: float,
              mass: float,
              twod: bool = False,
-             **kwargs) -> mjcf.Element:
+             **kwargs) -> 'dm_control.mjcf.Element':
     root.asset.add('texture',
                    name='ball',
                    builtin='checker',

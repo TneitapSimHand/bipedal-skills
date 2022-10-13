@@ -9,4 +9,4 @@ if [ $? -ne 0 ]; then
   echo 'isort not found' >/dev/stderr
   exit 1
 fi
-exec black -q --line-length=80 -S - | isort -y -
+exec black -q --line-length=80 -S - | isort -

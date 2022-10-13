@@ -11,7 +11,7 @@ import gym
 import numpy as np
 from dm_control import mjcf
 
-from bisk.helpers import add_box, add_fwd_corridor, asset_path
+from bisk.helpers import asset_path
 from bisk.single_robot import BiskSingleRobotEnv
 
 log = logging.getLogger(__name__)
@@ -26,12 +26,16 @@ class BiskGapsEnv(BiskSingleRobotEnv):
         self,
         robot: str,
         features: str,
+        allow_fallover: bool,
+        shaped: bool,
         max_size: float,
         min_gap: float,
         max_gap: float,
         fixed_size: bool,
+        **kwargs,
     ):
-        super().__init__(robot, features)
+        super().__init__(robot, features, **kwargs)
+        self.shaped = shaped
         self.max_size = max(0.5, max_size)
         self.fixed_size = fixed_size
         self.min_gap = min_gap
@@ -42,15 +46,12 @@ class BiskGapsEnv(BiskSingleRobotEnv):
             low=-np.inf, high=np.inf, shape=(3,), dtype=np.float32
         )
         self.observation_space = gym.spaces.Dict(
-            [
-                ('next_gap_platform', obs_env),
-                ('observation', obs_base),
-            ]
+            [('next_gap_platform', obs_env), ('observation', obs_base)]
         )
 
     def init_sim(self, root: mjcf.RootElement, frameskip: int = 5):
         W = 8
-        add_fwd_corridor(root, W)
+        self.add_fwd_corridor(root, W)
         root.find('geom', 'floor').remove()
 
         # Base platform
@@ -81,7 +82,7 @@ class BiskGapsEnv(BiskSingleRobotEnv):
             texuniform=True,
             texture='tex_lava',
         )
-        add_box(
+        self.add_box(
             root,
             f'base',
             size=[(W + 4) / 2, W, H],
@@ -101,7 +102,7 @@ class BiskGapsEnv(BiskSingleRobotEnv):
         )
         for i in range(self.n_platforms):
             o = (i % 2) * 0.1
-            add_box(
+            self.add_box(
                 root,
                 f'platform-{i}',
                 size=[1, W, H],
@@ -110,7 +111,7 @@ class BiskGapsEnv(BiskSingleRobotEnv):
                 rgba=[0.2 + o, 0.3 + o, 0.4 + o, 1.0],
             )
             # Gaps are placed 5cm below
-            g = add_box(
+            g = self.add_box(
                 root,
                 f'gap-{i}',
                 size=[1, W, H],
@@ -123,32 +124,48 @@ class BiskGapsEnv(BiskSingleRobotEnv):
     def reset_state(self):
         super().reset_state()
         self.max_platforms_reached = 0
-        xpos = 4
+        xpos = 4 * self.world_scale
         if self.fixed_size:
-            gaps = np.zeros(self.n_platforms) + self.min_gap
-            sizes = np.zeros(self.n_platforms) + self.max_size
+            gaps = np.zeros(self.n_platforms) + self.min_gap * self.world_scale
+            sizes = (
+                np.zeros(self.n_platforms) + self.max_size * self.world_scale
+            )
         else:
             if self.robot.startswith('quadruped'):
-                gaps = self.np_random.uniform(
-                    0.8, 1.55, size=(self.n_platforms,)
+                gaps = (
+                    self.np_random.uniform(0.8, 1.55, size=(self.n_platforms,))
+                    * self.world_scale
                 )
                 ms = max(self.max_size * 2, 2.0)
-                sizes = self.np_random.uniform(
-                    2.0, ms, size=(self.n_platforms,)
+                sizes = (
+                    self.np_random.uniform(2.0, ms, size=(self.n_platforms,))
+                    * self.world_scale
                 )
             elif self.robot.startswith('humanoid'):
-                gaps = self.np_random.uniform(
-                    self.min_gap, self.max_gap, size=(self.n_platforms,)
+                gaps = (
+                    self.np_random.uniform(
+                        self.min_gap, self.max_gap, size=(self.n_platforms,)
+                    )
+                    * self.world_scale
                 )
-                sizes = self.np_random.uniform(
-                    1.0, self.max_size, size=(self.n_platforms,)
+                sizes = (
+                    self.np_random.uniform(
+                        1.0, self.max_size, size=(self.n_platforms,)
+                    )
+                    * self.world_scale
                 )
             else:
-                gaps = self.np_random.uniform(
-                    self.min_gap, self.max_gap, size=(self.n_platforms,)
+                gaps = (
+                    self.np_random.uniform(
+                        self.min_gap, self.max_gap, size=(self.n_platforms,)
+                    )
+                    * self.world_scale
                 )
-                sizes = self.np_random.uniform(
-                    0.5, self.max_size, size=(self.n_platforms,)
+                sizes = (
+                    self.np_random.uniform(
+                        0.5, self.max_size, size=(self.n_platforms,)
+                    )
+                    * self.world_scale
                 )
 
         self.gap_starts = []
@@ -186,7 +203,8 @@ class BiskGapsEnv(BiskSingleRobotEnv):
         return {
             'observation': super().get_observation(),
             'next_gap_platform': np.array(
-                [next_gap_d, next_platform_d, not next_platform_reached]
+                [next_gap_d, next_platform_d, not next_platform_reached],
+                dtype=np.float32
             ),
         }
 
@@ -207,16 +225,20 @@ class BiskGapsEnv(BiskSingleRobotEnv):
     def step(self, action):
         mpbefore = self.max_platforms_reached
         self.touched_gap = False
-        obs, reward, done, info = super().step(action)
+        xpos1 = self.robot_pos[0]
+        obs, reward, terminated, truncated, info = super().step(action)
+        xpos2 = self.robot_pos[0]
 
         score = 1 if self.max_platforms_reached > mpbefore else 0
         info['score'] = score
-        reward = score
+        info['shaped_reward'] = xpos2 - xpos1
+        reward = info['shaped_reward'] if self.shaped else score
 
         if info.get('fell_over', False):
-            done = True
+            terminated = True
             reward = -1
         if self.touched_gap:
-            done = True
+            terminated = True
             reward = -1
-        return obs, reward, done, info
+            info['score'] -= 1
+        return obs, reward, terminated, truncated, info

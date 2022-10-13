@@ -12,7 +12,6 @@ import gym
 import numpy as np
 from dm_control import mjcf
 
-from bisk.helpers import add_box, add_capsule, add_fwd_corridor
 from bisk.single_robot import BiskSingleRobotEnv
 
 log = logging.getLogger(__name__)
@@ -27,12 +26,16 @@ class BiskHurdlesLimboEnv(BiskSingleRobotEnv):
         self,
         robot: str,
         features: str,
+        allow_fallover: bool,
+        shaped: bool,
         notouch: bool,
         min_bar_height: Union[float, str],
         max_hurdle_height: float,
         fixed_height: bool,
+        **kwargs,
     ):
-        super().__init__(robot, features)
+        super().__init__(robot, features, allow_fallover, **kwargs)
+        self.shaped = shaped
         self.notouch = notouch
         self.fixed_height = fixed_height
         self.max_obstacles_cleared = 0
@@ -63,24 +66,21 @@ class BiskHurdlesLimboEnv(BiskSingleRobotEnv):
             low=-np.inf, high=np.inf, shape=(4,), dtype=np.float32
         )
         self.observation_space = gym.spaces.Dict(
-            [
-                ('next_obstacle', obs_env),
-                ('observation', obs_base),
-            ]
+            [('next_obstacle', obs_env), ('observation', obs_base)]
         )
 
     def init_sim(self, root: mjcf.RootElement, frameskip: int = 5):
         W = 8
-        add_fwd_corridor(root, W)
+        self.add_fwd_corridor(root, W)
         # 200 obstacles should be enough for everybody
         self.n_obstacles = 200
         for i in range(self.n_obstacles):
             if i % 2 == 0:
-                b = add_box(
+                b = self.add_box(
                     root, f'hurdle-{i}', size=[0.05, W, 0.1], pos=[2, 0, 0.2]
                 )
             else:
-                b = add_capsule(
+                b = self.add_capsule(
                     root,
                     f'bar-{i}',
                     fromto=[2.025, -W, 0.1, 2.025, W, 0.1],
@@ -93,21 +93,31 @@ class BiskHurdlesLimboEnv(BiskSingleRobotEnv):
         super().reset_state()
         self.max_obstacles_cleared = 0
         xpos = 1
-        intervals = self.np_random.uniform(3, 6, size=(self.n_obstacles,))
+        intervals = self.np_random.uniform(3, 6, size=(self.n_obstacles,)) * self.world_scale
         assert self.n_obstacles % 2 == 0
         if self.fixed_height:
-            bar_heights = np.zeros(self.n_obstacles // 2) + self.min_bar_height
+            bar_heights = (
+                np.zeros(self.n_obstacles // 2)
+                + self.min_bar_height * self.world_scale
+            )
             hurdle_heights = (
-                np.zeros(self.n_obstacles // 2) + self.max_hurdle_height
+                np.zeros(self.n_obstacles // 2)
+                + self.max_hurdle_height * self.world_scale
             )
         else:
-            bar_heights = self.np_random.uniform(
-                self.min_bar_height,
-                self.min_bar_height + 0.3,
-                size=(self.n_obstacles // 2,),
+            bar_heights = (
+                self.np_random.uniform(
+                    self.min_bar_height,
+                    self.min_bar_height + 0.3,
+                    size=(self.n_obstacles // 2,),
+                )
+                * self.world_scale
             )
-            hurdle_heights = self.np_random.uniform(
-                0.1, self.max_hurdle_height, size=(self.n_obstacles // 2,)
+            hurdle_heights = (
+                self.np_random.uniform(
+                    0.1, self.max_hurdle_height, size=(self.n_obstacles // 2,)
+                )
+                * self.world_scale
             )
         self.obstacle_pos = []
         self.obstacle_type = []
@@ -157,7 +167,8 @@ class BiskHurdlesLimboEnv(BiskSingleRobotEnv):
                     next_obstacle_d,
                     next_obstacle_h,
                     not next_obstacle_cleared,
-                ]
+                ],
+                dtype=np.float32
             ),
         }
 
@@ -191,7 +202,9 @@ class BiskHurdlesLimboEnv(BiskSingleRobotEnv):
     def step(self, action):
         self.new_bars_hit = set()
         mobefore = self.max_obstacles_cleared
-        obs, reward, done, info = super().step(action)
+        xpos1 = self.robot_pos[0]
+        obs, reward, terminated, truncated, info = super().step(action)
+        xpos2 = self.robot_pos[0]
 
         score = 1 if self.max_obstacles_cleared > mobefore else 0
         touched = False
@@ -204,9 +217,10 @@ class BiskHurdlesLimboEnv(BiskSingleRobotEnv):
                     score -= 1
             self.bar_hit[hit] = True
         info['score'] = score
-        reward = score
+        info['shaped_reward'] = xpos2 - xpos1
+        reward = info['shaped_reward'] if self.shaped else score
 
         if info.get('fell_over', False):
             reward = -1
-            done = True
-        return obs, reward, done, info
+            terminated = True
+        return obs, reward, terminated, truncated, info

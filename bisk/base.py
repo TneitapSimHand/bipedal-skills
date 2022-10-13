@@ -5,25 +5,28 @@
 #
 
 import logging
+from typing import Optional
 
 import gym
 import numpy as np
-from dm_control import mjcf, mujoco
-from dm_control.mujoco.wrapper.mjbindings import mjlib
-from gym.utils import seeding
+
+from bisk import legacy_seeding as seeding
 
 log = logging.getLogger(__name__)
 
 
 class BiskEnv(gym.Env):
-    metadata = {'render.modes': ['rgb_array']}
+    metadata = {'render_modes': ['rgb_array']}
 
     def __init__(self):
-        # This is a no-op; run init_sim() with a root element to set up the
+        # This is a stub; run init_sim() with a root element to set up the
         # environment.
+        self.metadata = dict(**BiskEnv.metadata)
         self.p = None
+        self.np_random = seeding.np_random(None)
 
-    def init_sim(self, root: mjcf.RootElement, frameskip: int = 5):
+    def init_sim(self, root: 'mjcf.RootElement', frameskip: int = 5):
+        from dm_control import mjcf
         if self.p is not None:
             raise RuntimeError('Simulation already initialized')
         self.p = mjcf.Physics.from_mjcf_model(root)
@@ -43,13 +46,7 @@ class BiskEnv(gym.Env):
         )
         # Leave observation space undefined in the base environment
 
-    def seed(self, seed=None):
-        self.np_random, sd = seeding.np_random(seed)
-        if self.action_space is not None:
-            self.action_space.seed(seed)
-        if self.observation_space is not None:
-            self.observation_space.seed(seed)
-        return sd
+        self.metadata['render_fps'] = 1 / (self.p.model.opt.timestep * self.frameskip)
 
     @property
     def dt(self):
@@ -61,7 +58,14 @@ class BiskEnv(gym.Env):
     def get_observation(self):
         raise NotImplementedError()
 
-    def reset(self):
+    def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
+        if seed is not None:
+            self.np_random, seed = seeding.np_random(seed)
+            if self.action_space is not None:
+                self.action_space.seed(seed)
+            if self.observation_space is not None:
+                self.observation_space.seed(seed)
+
         # Disable contacts during reset to prevent potentially large contact
         # forces that can be applied during initial positioning of bodies in
         # reset_state().
@@ -69,7 +73,7 @@ class BiskEnv(gym.Env):
             self.p.reset()
             self.reset_state()
         self.step_simulation()
-        return self.get_observation()
+        return self.get_observation(), {}
 
     def render(self, mode='rgb_array', **kwargs):
         width = kwargs.get('width', 480)
@@ -90,14 +94,22 @@ class BiskEnv(gym.Env):
         pass
 
     def step_simulation(self):
+        from dm_control.mujoco.wrapper.mjbindings import mjlib
         for _ in range(self.frameskip):
             self.p.step()
             self.on_step_single_frame()
         # Call mj_rnePostConstraint to populate cfrc_ext (not done automatically
         # in MuJoCo 2.0 unless the model defines the proper sensors)
         mjlib.mj_rnePostConstraint(self.p.model.ptr, self.p.data.ptr)
+        # Same for subtree_linvel
+        mjlib.mj_subtreeVel(self.p.model.ptr, self.p.data.ptr)
 
     def step(self, action):
+        from dm_control.rl.control import PhysicsError
         self.apply_action(action)
-        self.step_simulation()
-        return self.get_observation(), 0, False, {}
+        try:
+            self.step_simulation()
+        except PhysicsError as e:
+            log.exception(e)
+            return self.get_observation(), -1, True, {'physics_error': True}
+        return self.get_observation(), 0, False, False, {}

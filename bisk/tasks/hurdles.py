@@ -11,7 +11,6 @@ import gym
 import numpy as np
 from dm_control import mjcf
 
-from bisk.helpers import add_box, add_fwd_corridor
 from bisk.single_robot import BiskSingleRobotEnv
 
 log = logging.getLogger(__name__)
@@ -26,10 +25,14 @@ class BiskHurdlesEnv(BiskSingleRobotEnv):
         self,
         robot: str,
         features: str,
+        allow_fallover: bool,
+        shaped: bool,
         max_height: float,
         fixed_height: bool,
+        **kwargs,
     ):
-        super().__init__(robot, features)
+        super().__init__(robot, features, allow_fallover, **kwargs)
+        self.shaped = shaped
         self.max_height = max_height
         self.fixed_height = fixed_height
         self.max_hurdles_cleared = 0
@@ -39,19 +42,16 @@ class BiskHurdlesEnv(BiskSingleRobotEnv):
             low=-np.inf, high=np.inf, shape=(3,), dtype=np.float32
         )
         self.observation_space = gym.spaces.Dict(
-            [
-                ('next_hurdle', obs_env),
-                ('observation', obs_base),
-            ]
+            [('next_hurdle', obs_env), ('observation', obs_base)]
         )
 
     def init_sim(self, root: mjcf.RootElement, frameskip: int = 5):
         W = 8
-        add_fwd_corridor(root, W)
+        self.add_fwd_corridor(root, W)
         # 200 hurdles should be enough for everybody
         self.n_hurdles = 200
         for i in range(self.n_hurdles):
-            b = add_box(
+            b = self.add_box(
                 root, f'hurdle-{i}', size=[0.05, W, 0.1], pos=[2, 0, 0.2]
             )
 
@@ -61,12 +61,20 @@ class BiskHurdlesEnv(BiskSingleRobotEnv):
         super().reset_state()
         self.max_hurdles_cleared = 0
         xpos = 1
-        intervals = self.np_random.uniform(3, 6, size=(self.n_hurdles,))
+        intervals = (
+            self.np_random.uniform(3, 6, size=(self.n_hurdles,))
+            * self.world_scale
+        )
         if self.fixed_height:
-            heights = np.zeros(self.n_hurdles) + self.max_height
+            heights = (
+                np.zeros(self.n_hurdles) + self.max_height * self.world_scale
+            )
         else:
-            heights = self.np_random.uniform(
-                0.1, self.max_height, size=(self.n_hurdles,)
+            heights = (
+                self.np_random.uniform(
+                    0.1, self.max_height, size=(self.n_hurdles,)
+                )
+                * self.world_scale
             )
         self.hurdle_pos = []
         for i in range(self.n_hurdles):
@@ -92,7 +100,8 @@ class BiskHurdlesEnv(BiskSingleRobotEnv):
         return {
             'observation': super().get_observation(),
             'next_hurdle': np.array(
-                [next_hurdle_d, next_hurdle_h, not next_hurdle_cleared]
+                [next_hurdle_d, next_hurdle_h, not next_hurdle_cleared],
+                dtype=np.float32
             ),
         }
 
@@ -108,13 +117,16 @@ class BiskHurdlesEnv(BiskSingleRobotEnv):
 
     def step(self, action):
         mhbefore = self.max_hurdles_cleared
-        obs, reward, done, info = super().step(action)
+        xpos1 = self.robot_pos[0]
+        obs, reward, terminated, truncated, info = super().step(action)
+        xpos2 = self.robot_pos[0]
 
         score = 1 if self.max_hurdles_cleared > mhbefore else 0
         info['score'] = score
-        reward = score
+        info['shaped_reward'] = xpos2 - xpos1
+        reward = info['shaped_reward'] if self.shaped else score
 
         if info.get('fell_over', False):
-            done = True
+            terminated = True
             reward = -1
-        return obs, reward, done, info
+        return obs, reward, terminated, truncated, info

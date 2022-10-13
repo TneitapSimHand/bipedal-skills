@@ -13,17 +13,16 @@ import bisk
 @pytest.fixture
 def env():
     env = gym.make('BiskPoleBalance-v1', robot='testcube')
-    env.seed(0)
+    obs, _ = env.reset(seed=0)
     yield env
     env.close()
 
 
 def test_rewards(env):
-    env.reset()
-    done = False
-    while not done:
-        obs, reward, done, info = env.step([1, 0, 0])
-        if done:
+    terminated = False
+    while not terminated:
+        obs, reward, terminated, truncated, info = env.step([1, 0, 0])
+        if terminated:
             assert reward == 0
         else:
             assert reward == 1

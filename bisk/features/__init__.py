@@ -4,8 +4,6 @@
 # LICENSE file in the root directory of this source tree.
 #
 
-from dm_control import mujoco
-
 from bisk.features.base import Featurizer
 
 _registry = {}
@@ -18,7 +16,7 @@ def register_featurizer(name, cls):
 
 def make_featurizer(
     features: str,
-    p: mujoco.Physics,
+    p: 'dm_control.mujoco.Physics',
     robot: str,
     prefix: str = 'robot',
     *args,

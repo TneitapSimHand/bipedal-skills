@@ -13,12 +13,11 @@ import bisk
 @pytest.fixture
 def env():
     env = gym.make('BiskHurdles-v1', robot='testcube')
-    env.seed(0)
+    obs, _ = env.reset(seed=0)
     yield env
     env.close()
 
 
 def test_render(env):
-    env.reset()
     img = env.render(width=480, height=480)
     assert img.shape == (480, 480, 3)

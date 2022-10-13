@@ -14,12 +14,12 @@ import bisk
 # step.
 def _create_helper(env_name: str, robot: str):
     env = gym.make(env_name, robot='Walker')
-    env.reset()
+    env.reset(seed=0)
     env.step(env.action_space.sample())
     env.close()
 
     env = gym.make(env_name.replace('-v', f'{robot}-v'))
-    env.reset()
+    env.reset(seed=0)
     env.step(env.action_space.sample())
     env.close()
 
@@ -31,7 +31,7 @@ def _envs_helper(robot: str):
     _create_helper('BiskGaps-v1', robot)
     _create_helper('BiskStairs-v1', robot)
     _create_helper('BiskGoalWall-v1', robot)
-    _create_helper('BiskGoalWall-v1', robot)
+    _create_helper('BiskGoToTargets-v1', robot)
 
 
 def test_halfcheetah_create():
@@ -48,3 +48,7 @@ def test_humanoid_create():
 
 def test_humanoidpc_create():
     _envs_helper('HumanoidPC')
+
+
+def test_humanoidamasspc_create():
+    _envs_helper('HumanoidAMASSPC')

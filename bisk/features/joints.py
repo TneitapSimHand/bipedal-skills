@@ -10,8 +10,6 @@ from typing import List, Set
 
 import gym
 import numpy as np
-from dm_control import mujoco
-from dm_control.mujoco.wrapper.mjbindings import mjlib
 
 from bisk.features.base import Featurizer
 
@@ -23,7 +21,7 @@ class JointsFeaturizer(Featurizer):
     '''
 
     def __init__(
-        self, p: mujoco.Physics, robot: str, prefix: str, exclude: str = None
+        self, p: 'dm_control.mujoco.Physics', robot: str, prefix: str, exclude: str = None
     ):
         super().__init__(p, robot, prefix, exclude)
 
@@ -84,7 +82,7 @@ class JointsRelZFeaturizer(JointsFeaturizer):
 
     def __init__(
         self,
-        p: mujoco.Physics,
+        p: 'mujoco.Physics',
         robot: str,
         prefix: str = 'robot',
         exclude: str = None,
@@ -97,15 +95,16 @@ class JointsRelZFeaturizer(JointsFeaturizer):
                 self.robot_geoms.add(i)
 
         # XXX Hacky lookup of z feature
-        try:
-            self.zpos_idx = self.feature_names().index(':pz')
-        except:
+        names = [':pz', 'slidez:p', 'rootz:p', 'root:pz']
+        for name in names:
             try:
-                self.zpos_idx = self.feature_names().index('slidez:p')
+                self.zpos_idx = self.feature_names().index(name)
+                break
             except:
-                self.zpos_idx = self.feature_names().index('rootz:p')
+                continue
 
     def relz(self):
+        from dm_control.mujoco.wrapper.mjbindings import mjlib
         # Find closest non-robot geom from torso downwards
         pos = self.p.named.data.xpos[f'{self.prefix}/torso'].copy()
         dir = np.array([0.0, 0.0, -1.0])

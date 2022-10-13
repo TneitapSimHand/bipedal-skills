@@ -32,7 +32,7 @@ setup(
     python_requires='>=3.7',
     install_requires=[
         'dm-control>=0.0.32',
-        'gym>=0.18',
+        'gym>=0.26',
         'numpy>=1.9.0',
     ],
     packages=find_packages(),

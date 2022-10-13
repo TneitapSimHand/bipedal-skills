@@ -36,14 +36,16 @@ class BiskPoleBalanceEnv(BiskSingleRobotEnv):
         self,
         robot: str,
         features: str,
+        allow_fallover: bool,
         pole_mass: float,
         pole_length: float,
         n_poles: int,
+        **kwargs,
     ):
         self.pole_mass = pole_mass
         self.pole_length = pole_length
         self.n_poles = n_poles
-        super().__init__(robot, features)
+        super().__init__(robot, features, allow_fallover, **kwargs)
 
         self.pole_qpos_idx: List[int] = []
         self.pole_qvel_idx: List[int] = []
@@ -81,8 +83,6 @@ class BiskPoleBalanceEnv(BiskSingleRobotEnv):
             ]
         )
 
-        self.seed()
-
     def make_featurizer(self, features: str):
         return make_featurizer(
             features, self.p, self.robot, 'robot', exclude=r'robot/pole'
@@ -96,13 +96,24 @@ class BiskPoleBalanceEnv(BiskSingleRobotEnv):
         except:
             cmap = lambda x: [1, 0, 0, 1]
 
-        size = 0.05
+        size = 0.05 * self.world_scale
         if self.robot in {'humanoid', 'humanoidpc'}:
-            size = 0.02
+            size = 0.02 * self.world_scale
             head = root.find('body', 'robot/head')
             headg = head.find('geom', 'head')
             zpos = headg.size[0]
             pole = head.add('body', name='pole-0', pos=[0, 0, zpos])
+        elif self.robot in {'humanoidcmupc', 'humanoidamasspc'}:
+            size = 0.02 * self.world_scale
+            head = root.find('body', 'robot/head')
+            headg = head.find('geom', 'head')
+            zpos = headg.size[0]
+            pole = head.add(
+                'body',
+                name='pole-0',
+                pos=headg.pos + [0, zpos, 0],
+                xyaxes=[1, 0, 0, 0, 0, -1],
+            )
         elif self.robot in {'halfcheetah'}:
             torso = root.find('body', 'robot/torso')
             pole = torso.add('body', name='pole-0', pos=[0, 0, 0])
@@ -146,15 +157,15 @@ class BiskPoleBalanceEnv(BiskSingleRobotEnv):
             'geom',
             name='pole-0_geom',
             type='capsule',
-            fromto=[0, 0, 0, 0, 0, self.pole_length],
+            fromto=[0, 0, 0, 0, 0, self.pole_length * self.world_scale],
             size=[size],
-            mass=self.pole_mass,
+            mass=self.pole_mass * self.world_scale,
             rgba=cmap(0),
         )
 
         for i in range(1, self.n_poles):
             pole = pole.add(
-                'body', name=f'pole-{i}', pos=[0, 0, self.pole_length]
+                'body', name=f'pole-{i}', pos=[0, 0, self.pole_length * self.world_scale]
             )
             if self.robot in {'halfcheetah', 'walker'}:
                 limit = np.pi if self.robot == 'halfcheetah' else 180
@@ -181,9 +192,9 @@ class BiskPoleBalanceEnv(BiskSingleRobotEnv):
                 'geom',
                 name=f'pole-{i}_geom',
                 type='capsule',
-                fromto=[0, 0, 0, 0, 0, self.pole_length],
+                fromto=[0, 0, 0, 0, 0, self.pole_length * self.world_scale],
                 size=[size],
-                mass=self.pole_mass,
+                mass=self.pole_mass * self.world_scale,
                 rgba=cmap((i + 1) / self.n_poles),
             )
 
@@ -205,12 +216,12 @@ class BiskPoleBalanceEnv(BiskSingleRobotEnv):
         qpos = self.init_qpos + self.np_random.uniform(
             low=-noise, high=noise, size=self.p.model.nq
         )
-        qvel = self.init_qvel + noise * self.np_random.randn(self.p.model.nv)
+        qvel = self.init_qvel + noise * self.np_random.standard_normal(self.p.model.nv)
         self.p.data.qpos[self.pole_qpos_idx] = qpos[self.pole_qpos_idx]
         self.p.data.qvel[self.pole_qvel_idx] = qvel[self.pole_qvel_idx]
 
     def step(self, action):
-        obs, reward, done, info = super().step(action)
+        obs, reward, terminated, truncated, info = super().step(action)
         reward = 1.0
 
         # Failure is defined as the z range of bottom and top of pole tower
@@ -220,25 +231,25 @@ class BiskPoleBalanceEnv(BiskSingleRobotEnv):
         t = np.zeros(3)
         mjlib.mju_rotVecQuat(
             t,
-            np.array([0.0, 0.0, -self.pole_length / 2]),
+            np.array([0.0, 0.0, -self.pole_length / 2]) * self.world_scale,
             xquat['robot/pole-0'],
         )
         bottom_z = xpos['robot/pole-0'][2] + t[2]
         mjlib.mju_rotVecQuat(
             t,
-            np.array([0.0, 0.0, self.pole_length / 2]),
+            np.array([0.0, 0.0, self.pole_length / 2]) * self.world_scale,
             xquat[f'robot/pole-{self.n_poles-1}'],
         )
         top_z = xpos[f'robot/pole-{self.n_poles-1}'][2] + t[2]
 
-        zthresh = 0.8 * self.n_poles * self.pole_length
+        zthresh = 0.8 * self.n_poles * self.pole_length * self.world_scale
         if top_z - bottom_z < zthresh:
-            done = True
-        score = 1 if not done else 0
+            terminated = True
+        score = 1 if not terminated else 0
         info['score'] = score
         reward = score
 
         if info.get('fell_over', False):
-            done = True
+            terminated = True
             reward = -1
-        return obs, reward, done, info
+        return obs, reward, terminated, truncated, info

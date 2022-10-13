@@ -9,30 +9,27 @@ from typing import Dict, List
 
 import gym
 import numpy as np
-from dm_control import mujoco
-from dm_control.mujoco.wrapper.mjbindings import enums as mjenums
-from dm_control.mujoco.wrapper.mjbindings import mjlib
 
 log = logging.getLogger(__name__)
 
 
 class Featurizer:
     n_qpos: Dict[int, int] = {  # qpos entries per joint type
-        mjenums.mjtJoint.mjJNT_FREE: 7,
-        mjenums.mjtJoint.mjJNT_BALL: 4,
-        mjenums.mjtJoint.mjJNT_SLIDE: 1,
-        mjenums.mjtJoint.mjJNT_HINGE: 1,
+        0: 7, # mjenums.mjtJoint.mjJNT_FREE
+        1: 4, # mjenums.mjtJoint.mjJNT_BALL
+        2: 1, # mjenums.mjtJoint.mjJNT_SLIDE
+        3: 1, # mjenums.mjtJoint.mjJNT_HINGE
     }
     n_qvel: Dict[int, int] = {  # qvel entries per joint type
-        mjenums.mjtJoint.mjJNT_FREE: 6,
-        mjenums.mjtJoint.mjJNT_BALL: 3,
-        mjenums.mjtJoint.mjJNT_SLIDE: 1,
-        mjenums.mjtJoint.mjJNT_HINGE: 1,
+        0: 6, # mjenums.mjtJoint.mjJNT_FREE
+        1: 3, # mjenums.mjtJoint.mjJNT_BALL
+        2: 1, # mjenums.mjtJoint.mjJNT_SLIDE
+        3: 1, # mjenums.mjtJoint.mjJNT_HINGE
     }
 
     def __init__(
         self,
-        p: mujoco.Physics,
+        p: 'dm_control.mujoco.Physics',
         robot: str,
         prefix: str = 'robot',
         exclude: str = None,
@@ -40,6 +37,9 @@ class Featurizer:
         self.p = p
         self.prefix = prefix
         self.observation_space: gym.spaces.Box = None
+
+    def reset(self):
+        pass
 
     def __call__(self) -> np.ndarray:
         raise NotImplementedError()
@@ -105,6 +105,7 @@ class Featurizer:
         return names
 
     def sensor_names(self) -> List[str]:
+        from dm_control.mujoco.wrapper.mjbindings import enums as mjenums
         names = ['' for i in range(len(self.p.data.sensordata))]
         for sn in self.p.named.model.sensor_adr.axes.row.names:
             typ = self.p.named.model.sensor_type[sn]

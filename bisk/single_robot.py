@@ -5,15 +5,15 @@
 #
 
 import logging
-from typing import List
+from typing import Iterable, List
 
 import gym
 import numpy as np
-from dm_control import mjcf
 
 from bisk.base import BiskEnv
 from bisk.features import make_featurizer
-from bisk.helpers import add_ball, add_robot, root_with_floor
+from bisk.helpers import (add_ball, add_box, add_capsule, add_fwd_corridor,
+                          add_robot, root_with_floor)
 
 log = logging.getLogger(__name__)
 
@@ -25,9 +25,19 @@ class BiskSingleRobotEnv(BiskEnv):
         super().__init__()
         self.allow_fallover = allow_fallover
 
-        root = root_with_floor()
-        _, robot_pos = add_robot(root, robot, 'robot')
         self.robot = robot.lower()
+        self.world_scale = 1.0
+        if self.robot.startswith('humanoidcmu') or self.robot.startswith(
+            'humanoidamass'
+        ):
+            # The CMU/AMASS robots are about 1.3 the size of the default
+            # Humanoid
+            self.world_scale = 1.3
+
+        root = root_with_floor()
+        _, robot_pos = add_robot(
+            root, robot, 'robot', init=getattr(self, 'init_robot', None)
+        )
 
         frameskip = 5
         fs = root.find('numeric', 'robot/frameskip')
@@ -42,13 +52,18 @@ class BiskSingleRobotEnv(BiskEnv):
             # qpos is z_pos, x_pos, y_rot
             self.init_qpos[0] = robot_pos[2]
             self.init_qpos[1] = robot_pos[0]
+        elif self.robot.startswith('humanoidcmu') or self.robot.startswith(
+            'humanoidamass'
+        ):
+            # initialize to upright position
+            self.init_qpos[0:3] = [0.0, 0.0, 1.2]
+            self.init_qpos[3:7] = [0.859, 1.0, 1.0, 0.859]
         else:
             # TODO Verify that this actually corresponds to the torso position?
             self.init_qpos[0:3] = robot_pos
 
         self.featurizer = self.make_featurizer(features)
         self.observation_space = self.featurizer.observation_space
-        self.seed()
 
     @property
     def is_2d(self):
@@ -62,7 +77,16 @@ class BiskSingleRobotEnv(BiskEnv):
 
     @property
     def robot_pos(self) -> np.ndarray:
-        return self.p.named.data.xpos['robot/torso']
+        if self.robot.startswith('humanoidcmu') or self.robot.startswith(
+            'humanoidamass'
+        ):
+            return self.p.named.data.xpos['robot/lowerneck']
+        else:
+            return self.p.named.data.xpos['robot/torso']
+
+    @property
+    def robot_speed(self) -> np.ndarray:
+        return self.p.named.data.subtree_linvel['robot/torso']
 
     def make_featurizer(self, features: str):
         return make_featurizer(features, self.p, self.robot, 'robot')
@@ -72,9 +96,10 @@ class BiskSingleRobotEnv(BiskEnv):
         qpos = self.init_qpos + self.np_random.uniform(
             low=-noise, high=noise, size=self.p.model.nq
         )
-        qvel = self.init_qvel + noise * self.np_random.randn(self.p.model.nv)
+        qvel = self.init_qvel + noise * self.np_random.standard_normal(self.p.model.nv)
         self.p.data.qpos[:] = qpos
         self.p.data.qvel[:] = qvel
+        self.featurizer.reset()
 
     def get_observation(self):
         return self.featurizer()
@@ -97,11 +122,44 @@ class BiskSingleRobotEnv(BiskEnv):
         return False
 
     def step(self, action):
-        obs, reward, done, info = super().step(action)
+        obs, reward, terminated, truncated, info = super().step(action)
         if not self.allow_fallover and self.fell_over():
-            done = True
+            terminated = True
             info['fell_over'] = True
-        return obs, reward, done, info
+        return obs, reward, terminated, truncated, info
+
+    def add_box(
+        self,
+        root: 'dm_control.mjcf.RootElement',
+        name: str,
+        size: Iterable[float],
+        rgba: Iterable[float] = None,
+        with_body: bool = False,
+        **kwargs,
+    ) -> 'dm_control.mjcf.Element':
+        size = [s * self.world_scale for s in size]
+        if 'pos' in kwargs:
+            kwargs['pos'] = [p * self.world_scale for p in kwargs['pos']]
+        return add_box(root, name, size, rgba, with_body, **kwargs)
+
+    def add_capsule(
+        self,
+        root: 'dm_control.mjcf.RootElement',
+        name: str,
+        rgba: Iterable[float] = None,
+        with_body: bool = False,
+        **kwargs,
+    ) -> 'dm_control.mjcf.Element':
+        if 'fromto' in kwargs:
+            kwargs['fromto'] = [p * self.world_scale for p in kwargs['fromto']]
+        if 'size' in kwargs:
+            kwargs['size'] = [p * self.world_scale for p in kwargs['size']]
+        if 'pos' in kwargs:
+            kwargs['pos'] = [p * self.world_scale for p in kwargs['pos']]
+        return add_capsule(root, name, rgba, with_body, **kwargs)
+
+    def add_fwd_corridor(self, root: 'dm_control.mjcf.RootElement', W=4):
+        return add_fwd_corridor(root, W * self.world_scale)
 
 
 class BiskSingleRobotWithBallEnv(BiskSingleRobotEnv):
@@ -134,17 +192,18 @@ class BiskSingleRobotWithBallEnv(BiskSingleRobotEnv):
             dtype=np.float32,
         )
         self.observation_space = gym.spaces.Dict(
-            [
-                ('ball', obs_env),
-                ('observation', obs_base),
-            ]
+            [('ball', obs_env), ('observation', obs_base)]
         )
 
-        self.seed()
-
-    def init_sim(self, root: mjcf.RootElement, frameskip: int = 5):
-        ball_size = 0.15
-        add_ball(root, 'ball', size=ball_size, mass=0.1, twod=self.is_2d)
+    def init_sim(self, root: 'mjcf.RootElement', frameskip: int = 5):
+        ball_size = 0.15 * self.world_scale
+        add_ball(
+            root,
+            'ball',
+            size=ball_size,
+            mass=0.1 * self.world_scale,
+            twod=self.is_2d,
+        )
 
         super().init_sim(root, frameskip)
 
@@ -156,7 +215,7 @@ class BiskSingleRobotWithBallEnv(BiskSingleRobotEnv):
         qpos = self.init_qpos + self.np_random.uniform(
             low=-noise, high=noise, size=self.p.model.nq
         )
-        qvel = self.init_qvel + noise * self.np_random.randn(self.p.model.nv)
+        qvel = self.init_qvel + noise * self.np_random.standard_normal(self.p.model.nv)
         self.p.data.qpos[self.ball_qpos_idx] = qpos[self.ball_qpos_idx]
         self.p.data.qvel[self.ball_qvel_idx] = qvel[self.ball_qvel_idx]
 

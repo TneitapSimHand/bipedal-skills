@@ -12,7 +12,6 @@ import gym
 import numpy as np
 from dm_control import mjcf
 
-from bisk.helpers import add_capsule, add_fwd_corridor
 from bisk.single_robot import BiskSingleRobotEnv
 
 log = logging.getLogger(__name__)
@@ -28,11 +27,15 @@ class BiskLimboEnv(BiskSingleRobotEnv):
         self,
         robot: str,
         features: str,
+        allow_fallover: bool,
+        shaped: bool,
         notouch: bool,
         min_height: Union[float, str],
         fixed_height: bool,
+        **kwargs,
     ):
-        super().__init__(robot, features)
+        super().__init__(robot, features, allow_fallover, **kwargs)
+        self.shaped = shaped
         self.notouch = notouch
         self.fixed_height = fixed_height
         self.max_bars_cleared = 0
@@ -62,19 +65,16 @@ class BiskLimboEnv(BiskSingleRobotEnv):
             low=-np.inf, high=np.inf, shape=(3,), dtype=np.float32
         )
         self.observation_space = gym.spaces.Dict(
-            [
-                ('next_bar', obs_env),
-                ('observation', obs_base),
-            ]
+            [('next_bar', obs_env), ('observation', obs_base)]
         )
 
     def init_sim(self, root: mjcf.RootElement, frameskip: int = 5):
         W = 8
-        add_fwd_corridor(root, W)
+        self.add_fwd_corridor(root, W)
         # 200 bars should be enough for everybody
         self.n_bars = 200
         for i in range(self.n_bars):
-            b = add_capsule(
+            b = self.add_capsule(
                 root,
                 f'bar-{i}',
                 fromto=[2.025, -W, 0.1, 2.025, W, 0.1],
@@ -87,12 +87,17 @@ class BiskLimboEnv(BiskSingleRobotEnv):
         super().reset_state()
         self.max_bars_cleared = 0
         xpos = 1
-        intervals = self.np_random.uniform(3, 6, size=(self.n_bars,))
+        intervals = (
+            self.np_random.uniform(3, 6, size=(self.n_bars,)) * self.world_scale
+        )
         if self.fixed_height:
-            heights = np.zeros(self.n_bars) + self.min_height
+            heights = np.zeros(self.n_bars) + self.min_height * self.world_scale
         else:
-            heights = self.np_random.uniform(
-                self.min_height, self.min_height + 0.3, size=(self.n_bars,)
+            heights = (
+                self.np_random.uniform(
+                    self.min_height, self.min_height + 0.3, size=(self.n_bars,)
+                )
+                * self.world_scale
             )
         self.bar_pos = []
         nm = self.p.named.model
@@ -123,7 +128,8 @@ class BiskLimboEnv(BiskSingleRobotEnv):
         return {
             'observation': super().get_observation(),
             'next_bar': np.array(
-                [next_bar_d, next_bar_h, not next_bar_cleared]
+                [next_bar_d, next_bar_h, not next_bar_cleared],
+                dtype=np.float32
             ),
         }
 
@@ -157,7 +163,9 @@ class BiskLimboEnv(BiskSingleRobotEnv):
     def step(self, action):
         self.new_bars_hit = set()
         mbbefore = self.max_bars_cleared
-        obs, reward, done, info = super().step(action)
+        xpos1 = self.robot_pos[0]
+        obs, reward, terminated, truncated, info = super().step(action)
+        xpos2 = self.robot_pos[0]
 
         score = 1 if self.max_bars_cleared > mbbefore else 0
         touched = False
@@ -170,9 +178,10 @@ class BiskLimboEnv(BiskSingleRobotEnv):
                     score -= 1
             self.bar_hit[hit] = True
         info['score'] = score
-        reward = score
+        info['shaped_reward'] = xpos2 - xpos1
+        reward = info['shaped_reward'] if self.shaped else score
 
-        if not self.allow_fallover and self.fell_over():
+        if info.get('fell_over', False):
             reward = -1
-            done = True
-        return obs, reward, done, info
+            terminated = True
+        return obs, reward, terminated, truncated, info

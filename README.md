@@ -50,16 +50,15 @@ This can be acheived in sequence or by using one of Gym's vector wrappers:
 ```py
 # Sequential evaluation
 env = gym.make('BiskHurdlesWalker-v1')
-env.seed(0)  # determinstic seed
 retrns = []
-for _ in range(50):
-  obs = env.reset()
+for i in range(50):
+  obs, _ = env.reset(seed=i)
   retrn = 0
   while True:
     # Retrieve `action` from agent
-    obs, reward, done, info = env.step(action)
+    obs, reward, terminated, truncated, info = env.step(action)
     retrn += reward
-    if done:
+    if terminated or truncated:
       # End of episode
       retrns.append(reward)
       break
@@ -70,15 +69,14 @@ from gym.vector import SyncVectorEnv
 import numpy as np
 n = 50
 env = SyncVectorEnv([lambda: gym.make('BiskHurdlesWalker-v1')] * n)
-env.seed(0)  # determinstic seed
 retrns = np.array([0.0] * n)
 dones = np.array([False] * n)
-obs = env.reset()
+obs, _ = env.reset(seed=0)
 while not dones.all():
     # Retrieve `action` from agent
-    obs, reward, done, info = env.step(action)
+    obs, reward, terminated, truncated, info = env.step(action)
     retrns += reward * np.logical_not(dones)
-    dones |= done
+    dones |= (terminated | truncated)
 print(f'Average return: {retrns.mean()}')
 ```
 

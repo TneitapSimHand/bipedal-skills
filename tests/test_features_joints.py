@@ -17,6 +17,7 @@ def test_names_walker():
     ftzr = JointsFeaturizer(env.p, 'walker', 'robot')
     assert ftzr.observation_space.shape == (60,)
     assert ftzr().shape == ftzr.observation_space.shape
+    # fmt off
     assert ftzr.feature_names() == [
         'rootz:p',
         'rootx:p',
@@ -79,6 +80,7 @@ def test_names_walker():
         'left_foot:cty',
         'left_foot:ctz',
     ]
+    # fmt on
     env.close()
 
 
@@ -89,6 +91,7 @@ def test_exclude_walker():
     )
     assert ftzr.observation_space.shape == (48,)
     assert ftzr().shape == ftzr.observation_space.shape
+    # fmt off
     assert ftzr.feature_names() == [
         'rootz:p',
         'rootx:p',
@@ -139,4 +142,5 @@ def test_exclude_walker():
         'left_leg:cty',
         'left_leg:ctz',
     ]
+    # fmt on
     env.close()
