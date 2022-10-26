@@ -24,8 +24,8 @@ def find_version() -> str:
 setup(
     name='bipedal-skills',
     version=find_version(),
-    author='Facebook AI Research',
-    author_email='jgehring@fb.com',
+    author='Meta AI Research',
+    author_email='jgehring@meta.com',
     url='https://facebookresearch.github.io/hsd3',
     license='MIT License',
     description='Bipedal Skills RL Benchmark',
