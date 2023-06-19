@@ -88,13 +88,13 @@ class BiskLimboEnv(BiskSingleRobotEnv):
         self.max_bars_cleared = 0
         xpos = 1
         intervals = (
-            self.np_random.uniform(3, 6, size=(self.n_bars,)) * self.world_scale
+            self.np_random[0].uniform(3, 6, size=(self.n_bars,)) * self.world_scale
         )
         if self.fixed_height:
             heights = np.zeros(self.n_bars) + self.min_height * self.world_scale
         else:
             heights = (
-                self.np_random.uniform(
+                self.np_random[0].uniform(
                     self.min_height, self.min_height + 0.3, size=(self.n_bars,)
                 )
                 * self.world_scale
@@ -164,7 +164,7 @@ class BiskLimboEnv(BiskSingleRobotEnv):
         self.new_bars_hit = set()
         mbbefore = self.max_bars_cleared
         xpos1 = self.robot_pos[0]
-        obs, reward, terminated, truncated, info = super().step(action)
+        return_vals = list(super().step(action)); obs, reward, terminated, truncated, info = return_vals if gym.__version__ == '0.26.1' else return_vals[:3] + [None] + [return_vals[-1]]
         xpos2 = self.robot_pos[0]
 
         score = 1 if self.max_bars_cleared > mbbefore else 0
@@ -184,4 +184,4 @@ class BiskLimboEnv(BiskSingleRobotEnv):
         if info.get('fell_over', False):
             reward = -1
             terminated = True
-        return obs, reward, terminated, truncated, info
+        return (obs, reward, terminated, truncated, info) if gym.__version__ == '0.26.1' else (obs, reward, terminated, info)

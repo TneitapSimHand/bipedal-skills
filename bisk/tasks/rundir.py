@@ -29,7 +29,7 @@ class BiskRunDirEnv(BiskSingleRobotEnv):
 
     def step(self, action):
         pos_before = self.robot_pos.copy()
-        obs, reward, terminated, truncated, info = super().step(action)
+        return_vals = list(super().step(action)); obs, reward, terminated, truncated, info = return_vals if gym.__version__ == '0.26.1' else return_vals[:3] + [None] + [return_vals[-1]]
         pos_after = self.robot_pos
         displacement = pos_after - pos_before
 
@@ -39,4 +39,4 @@ class BiskRunDirEnv(BiskSingleRobotEnv):
         if info.get('fell_over', False):
             terminated = True
             reward = -1
-        return obs, reward, terminated, truncated, info
+        return (obs, reward, terminated, truncated, info) if gym.__version__ == '0.26.1' else (obs, reward, terminated, info)

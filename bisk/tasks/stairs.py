@@ -122,7 +122,7 @@ class BiskStairsEnv(BiskSingleRobotEnv):
 
         self.step_pos: List[float] = []
         lengths = (
-            self.np_random.uniform(
+            self.np_random[0].uniform(
                 self.step_length_min,
                 self.step_length_max,
                 size=(self.n_steps + 1,),
@@ -218,7 +218,7 @@ class BiskStairsEnv(BiskSingleRobotEnv):
     def step(self, action):
         msbefore = self.max_steps_cleared
         xpos1 = self.robot_pos[0]
-        obs, reward, terminated, truncated, info = super().step(action)
+        return_vals = list(super().step(action)); obs, reward, terminated, truncated, info = return_vals if gym.__version__ == '0.26.1' else return_vals[:3] + [None] + [return_vals[-1]]
         xpos2 = self.robot_pos[0]
 
         score = 1 if self.max_steps_cleared > msbefore else 0
@@ -229,4 +229,4 @@ class BiskStairsEnv(BiskSingleRobotEnv):
         if info.get('fell_over', False):
             reward = -1
             terminated = True
-        return obs, reward, terminated, truncated, info
+        return (obs, reward, terminated, truncated, info) if gym.__version__ == '0.26.1' else (obs, reward, terminated, info)

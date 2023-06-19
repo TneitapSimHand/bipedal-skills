@@ -13,81 +13,87 @@ from dm_control.viewer import gui, renderer, viewer, views
 
 import bisk
 
-parser = argparse.ArgumentParser()
-parser.add_argument('task')
-parser.add_argument('robot')
-args = parser.parse_args()
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--task', type=str,default='stairs')
+    parser.add_argument('--robot', type=str, default='walker')
+    # parser.add_argument('--robot', type=str, default='humanoid')
+    # parser.add_argument('--robot', type=str, default='halfcheetah')
+    args = parser.parse_args()
+    return args
 
-env_name = {
-    'hurdles': 'BiskHurdles-v1',
-    'limbo': 'BiskLimbo-v1',
-    'hurdleslimbo': 'BiskHurdlesLimbo-v1',
-    'gaps': 'BiskGaps-v1',
-    'stairs': 'BiskStairs-v1',
-    'goalwall': 'BiskGoalWall-v1',
-    'polebalance': 'BiskPoleBalance-v1',
-    'gototarget': 'BiskGoToTarget-v1',
-    'butterflies': 'BiskButterflies-v1',
-}[args.task.lower()]
+if __name__ == "__main__":
 
-env = gym.make(env_name, robot=args.robot)
-print(
-    f'timestep {env.p.model.opt.timestep}s x frameskip {env.frameskip} = dt {env.dt}s'
-)
+    args = get_args()
 
-width = 480
-height = 480
-title = f'{args.task} - {args.robot}'
-render_surface = None
-_MAX_FRONTBUFFER_SIZE = 2048
-render_surface = _render.Renderer(
-    max_width=_MAX_FRONTBUFFER_SIZE, max_height=_MAX_FRONTBUFFER_SIZE
-)
-ren = renderer.OffScreenRenderer(env.p.model, render_surface)
-viewer_layout = views.ViewportLayout()
-viewport = renderer.Viewport(width, height)
-window = gui.RenderWindow(width, height, title)
-vw = viewer.Viewer(viewport, window.mouse, window.keyboard)
-ren.components += viewer_layout
-vw.initialize(env.p, ren, touchpad=False)
+    env_name = {
+        'hurdles': 'BiskHurdles-v1',
+        'limbo': 'BiskLimbo-v1',
+        'hurdleslimbo': 'BiskHurdlesLimbo-v1',
+        'gaps': 'BiskGaps-v1',
+        'stairs': 'BiskStairs-v1',
+        'goalwall': 'BiskGoalWall-v1',
+        'polebalance': 'BiskPoleBalance-v1',
+        'gototarget': 'BiskGoToTarget-v1',
+        'butterflies': 'BiskButterflies-v1',
+    }[args.task.lower()]
 
-env.seed(0)
-step = 0
+    env = gym.make(env_name, robot=args.robot)
+    print(f'timestep {env.p.model.opt.timestep}s x frameskip {env.frameskip} = dt {env.dt}s')
 
+    width = 1280
+    height = 480
+    title = f'{args.task} - {args.robot}'
+    render_surface = None
+    _MAX_FRONTBUFFER_SIZE = 2048
+    render_surface = _render.Renderer(
+        max_width=_MAX_FRONTBUFFER_SIZE, max_height=_MAX_FRONTBUFFER_SIZE
+    )
+    ren = renderer.OffScreenRenderer(env.p.model, render_surface)
+    viewer_layout = views.ViewportLayout()
+    viewport = renderer.Viewport(width, height)
+    window = gui.RenderWindow(width, height, title)
+    vw = viewer.Viewer(viewport, window.mouse, window.keyboard)
+    ren.components += viewer_layout
+    vw.initialize(env.p, ren, touchpad=False)
 
-def tick():
-    global step
-    global obs
-    if step == 0:
-        obs = env.reset()
-        #env.p.named.data.qvel['ball'][0:3] = [10, 3, 4]
-
-    a = env.action_space.sample()
-    a *= 0
-    '''
-    if step < 1:
-        a[2] = 1
-    elif step < 100:
-        a[0] = 1
-    else:
-        a[2] = -1
-    '''
-    d = False
-    obs, r, d, i = env.step(a)
-    step += 1
-    if step > 200 or d:
-        print(r)
-        print(f'reset after {step} steps')
-        step = 0
-    time.sleep(0.05)
-    vw.render()
+    # env.seed(0)
+    step = 0
 
 
-def _tick():
-    viewport.set_size(*window.shape)
-    tick()
-    return ren.pixels
+    def tick():
+        global step
+        global obs
+        if step == 0:
+            obs = env.reset()
+            #env.p.named.data.qvel['ball'][0:3] = [10, 3, 4]
+
+        a = env.action_space.sample()
+        a *= 0
+        '''
+        if step < 1:
+            a[2] = 1
+        elif step < 100:
+            a[0] = 1
+        else:
+            a[2] = -1
+        '''
+        d = False
+        obs, r, d, t, i = env.step(a)
+        step += 1
+        if step > 200 or d or t:
+            print(r)
+            print(f'reset after {step} steps')
+            step = 0
+        time.sleep(0.05)
+        vw.render()
 
 
-window.event_loop(tick_func=_tick)
-window.close()
+    def _tick():
+        viewport.set_size(*window.shape)
+        tick()
+        return ren.pixels
+
+
+    window.event_loop(tick_func=_tick)
+    window.close()

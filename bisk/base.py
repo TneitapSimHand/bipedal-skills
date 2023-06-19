@@ -111,5 +111,14 @@ class BiskEnv(gym.Env):
             self.step_simulation()
         except PhysicsError as e:
             log.exception(e)
+            if gym.__version__ == '0.26.1': 
+                return self.get_observation(), -1, True, True, {'physics_error': True}
+            # gym.__version__ == '0.21.0': 
             return self.get_observation(), -1, True, {'physics_error': True}
-        return self.get_observation(), 0, False, False, {}
+
+        
+        if gym.__version__ == '0.26.1': 
+            return self.get_observation(), 0, False, False, {}
+        # gym.__version__ == '0.21.0': 
+        return self.get_observation(), 0, False, {}
+        

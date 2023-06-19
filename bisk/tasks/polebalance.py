@@ -213,15 +213,15 @@ class BiskPoleBalanceEnv(BiskSingleRobotEnv):
 
         # Small noise for pole
         noise = 0.01
-        qpos = self.init_qpos + self.np_random.uniform(
+        qpos = self.init_qpos + self.np_random[0].uniform(
             low=-noise, high=noise, size=self.p.model.nq
         )
-        qvel = self.init_qvel + noise * self.np_random.standard_normal(self.p.model.nv)
+        qvel = self.init_qvel + noise * self.np_random[0].standard_normal(self.p.model.nv)
         self.p.data.qpos[self.pole_qpos_idx] = qpos[self.pole_qpos_idx]
         self.p.data.qvel[self.pole_qvel_idx] = qvel[self.pole_qvel_idx]
 
     def step(self, action):
-        obs, reward, terminated, truncated, info = super().step(action)
+        return_vals = list(super().step(action)); obs, reward, terminated, truncated, info = return_vals if gym.__version__ == '0.26.1' else return_vals[:3] + [None] + [return_vals[-1]]
         reward = 1.0
 
         # Failure is defined as the z range of bottom and top of pole tower
@@ -252,4 +252,4 @@ class BiskPoleBalanceEnv(BiskSingleRobotEnv):
         if info.get('fell_over', False):
             terminated = True
             reward = -1
-        return obs, reward, terminated, truncated, info
+        return (obs, reward, terminated, truncated, info) if gym.__version__ == '0.26.1' else (obs, reward, terminated, info)

@@ -93,10 +93,10 @@ class BiskSingleRobotEnv(BiskEnv):
 
     def reset_state(self):
         noise = 0.1
-        qpos = self.init_qpos + self.np_random.uniform(
+        qpos = self.init_qpos + self.np_random[0].uniform(
             low=-noise, high=noise, size=self.p.model.nq
         )
-        qvel = self.init_qvel + noise * self.np_random.standard_normal(self.p.model.nv)
+        qvel = self.init_qvel + noise * self.np_random[0].standard_normal(self.p.model.nv)
         self.p.data.qpos[:] = qpos
         self.p.data.qvel[:] = qvel
         self.featurizer.reset()
@@ -122,11 +122,11 @@ class BiskSingleRobotEnv(BiskEnv):
         return False
 
     def step(self, action):
-        obs, reward, terminated, truncated, info = super().step(action)
+        return_vals = list(super().step(action)); obs, reward, terminated, truncated, info = return_vals if gym.__version__ == '0.26.1' else return_vals[:3] + [None] + [return_vals[-1]]
         if not self.allow_fallover and self.fell_over():
             terminated = True
             info['fell_over'] = True
-        return obs, reward, terminated, truncated, info
+        return (obs, reward, terminated, truncated, info) if gym.__version__ == '0.26.1' else (obs, reward, terminated, info)
 
     def add_box(
         self,
@@ -212,10 +212,10 @@ class BiskSingleRobotWithBallEnv(BiskSingleRobotEnv):
 
         # Small noise for ball
         noise = 0.01
-        qpos = self.init_qpos + self.np_random.uniform(
+        qpos = self.init_qpos + self.np_random[0].uniform(
             low=-noise, high=noise, size=self.p.model.nq
         )
-        qvel = self.init_qvel + noise * self.np_random.standard_normal(self.p.model.nv)
+        qvel = self.init_qvel + noise * self.np_random[0].standard_normal(self.p.model.nv)
         self.p.data.qpos[self.ball_qpos_idx] = qpos[self.ball_qpos_idx]
         self.p.data.qvel[self.ball_qvel_idx] = qvel[self.ball_qvel_idx]
 

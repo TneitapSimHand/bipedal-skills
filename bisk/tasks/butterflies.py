@@ -213,7 +213,7 @@ class BiskButterfliesEnv(BiskSingleRobotEnv):
     def reset_state(self):
         super().reset_state()
 
-        poss = self.np_random.uniform(-1.0, 1.0, size=(self.n_butterflies, 3))
+        poss = self.np_random[0].uniform(-1.0, 1.0, size=(self.n_butterflies, 3))
         scale = (
             np.asarray([self.goal_area, self.goal_area, 0.5]) * self.world_scale
         )
@@ -245,7 +245,7 @@ class BiskButterfliesEnv(BiskSingleRobotEnv):
 
     def step(self, action):
         bfs_caught_before = self.butterflies_caught.sum()
-        obs, reward, terminated, truncated, info = super().step(action)
+        return_vals = list(super().step(action)); obs, reward, terminated, truncated, info = return_vals if gym.__version__ == '0.26.1' else return_vals[:3] + [None] + [return_vals[-1]]
         bfs_caught_after = self.butterflies_caught.sum()
         score = bfs_caught_after - bfs_caught_before
         info['score'] = score

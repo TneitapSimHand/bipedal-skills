@@ -49,12 +49,12 @@ class BiskVelocityControlEnv(BiskSingleRobotEnv):
         )
 
     def sample_move_speed(self):
-        self.move_speed = self.np_random.uniform(high=self.max_speed)
+        self.move_speed = self.np_random[0].uniform(high=self.max_speed)
         if self.is_2d:
             # Go forward or backward
-            self.move_angle = self.np_random.choice([0, np.pi])
+            self.move_angle = self.np_random[0].choice([0, np.pi])
         else:
-            self.move_angle = self.np_random.uniform(high=2 * np.pi)
+            self.move_angle = self.np_random[0].uniform(high=2 * np.pi)
         self.move_speed_counter = 0
 
     def reset_state(self):
@@ -70,7 +70,7 @@ class BiskVelocityControlEnv(BiskSingleRobotEnv):
         }
 
     def step(self, action):
-        obs, reward, terminated, truncated, info = super().step(action)
+        return_vals = list(super().step(action)); obs, reward, terminated, truncated, info = return_vals if gym.__version__ == '0.26.1' else return_vals[:3] + [None] + [return_vals[-1]]
         xvel, yvel = self.robot_speed[:2]
 
         speed = np.linalg.norm([xvel, yvel])
@@ -105,4 +105,4 @@ class BiskVelocityControlEnv(BiskSingleRobotEnv):
         if info.get('fell_over', False):
             terminated = True
             reward = -1
-        return obs, reward, terminated, truncated, info
+        return (obs, reward, terminated, truncated, info) if gym.__version__ == '0.26.1' else (obs, reward, terminated, info)

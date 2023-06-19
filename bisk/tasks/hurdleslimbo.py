@@ -93,7 +93,7 @@ class BiskHurdlesLimboEnv(BiskSingleRobotEnv):
         super().reset_state()
         self.max_obstacles_cleared = 0
         xpos = 1
-        intervals = self.np_random.uniform(3, 6, size=(self.n_obstacles,)) * self.world_scale
+        intervals = self.np_random[0].uniform(3, 6, size=(self.n_obstacles,)) * self.world_scale
         assert self.n_obstacles % 2 == 0
         if self.fixed_height:
             bar_heights = (
@@ -106,7 +106,7 @@ class BiskHurdlesLimboEnv(BiskSingleRobotEnv):
             )
         else:
             bar_heights = (
-                self.np_random.uniform(
+                self.np_random[0].uniform(
                     self.min_bar_height,
                     self.min_bar_height + 0.3,
                     size=(self.n_obstacles // 2,),
@@ -114,7 +114,7 @@ class BiskHurdlesLimboEnv(BiskSingleRobotEnv):
                 * self.world_scale
             )
             hurdle_heights = (
-                self.np_random.uniform(
+                self.np_random[0].uniform(
                     0.1, self.max_hurdle_height, size=(self.n_obstacles // 2,)
                 )
                 * self.world_scale
@@ -203,7 +203,7 @@ class BiskHurdlesLimboEnv(BiskSingleRobotEnv):
         self.new_bars_hit = set()
         mobefore = self.max_obstacles_cleared
         xpos1 = self.robot_pos[0]
-        obs, reward, terminated, truncated, info = super().step(action)
+        return_vals = list(super().step(action)); obs, reward, terminated, truncated, info = return_vals if gym.__version__ == '0.26.1' else return_vals[:3] + [None] + [return_vals[-1]]
         xpos2 = self.robot_pos[0]
 
         score = 1 if self.max_obstacles_cleared > mobefore else 0
@@ -223,4 +223,4 @@ class BiskHurdlesLimboEnv(BiskSingleRobotEnv):
         if info.get('fell_over', False):
             reward = -1
             terminated = True
-        return obs, reward, terminated, truncated, info
+        return (obs, reward, terminated, truncated, info) if gym.__version__ == '0.26.1' else (obs, reward, terminated, info)

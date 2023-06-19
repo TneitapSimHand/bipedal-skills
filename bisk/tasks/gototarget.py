@@ -104,7 +104,7 @@ class BiskGoToTargetEnv(BiskSingleRobotEnv):
         }
 
     def step(self, action):
-        obs, reward, terminated, truncated, info = super().step(action)
+        return_vals = list(super().step(action)); obs, reward, terminated, truncated, info = return_vals if gym.__version__ == '0.26.1' else return_vals[:3] + [None] + [return_vals[-1]]
 
         dist = np.linalg.norm(self.goals[0] - self.robot_pos[:2])
         if dist < self.tolerance:
@@ -134,30 +134,30 @@ class BiskGoToTargetEnv(BiskSingleRobotEnv):
             reward = -1
         if score == 1 and self.single_target:
             terminated = True
-        return obs, reward, terminated, truncated, info
+        return (obs, reward, terminated, truncated, info) if gym.__version__ == '0.26.1' else (obs, reward, terminated, info)
 
     def sample_goal(self, all: bool = False):
         if all:
             if self.on_circle:
-                self.goals = self.np_random.standard_normal(self.goals.shape)
+                self.goals = self.np_random[0].standard_normal(self.goals.shape)
                 self.goals /= np.maximum(
                     np.linalg.norm(self.goals, axis=1).reshape(-1, 1), 1e-5
                 )
                 self.goals *= self.goal_area
             else:
-                self.goals = self.np_random.uniform(
+                self.goals = self.np_random[0].uniform(
                     -self.goal_area, self.goal_area, size=self.goals.shape
                 )
         else:
             self.goals = np.roll(self.goals, -1, axis=0)
             if self.on_circle:
-                self.goals[-1] = self.np_random.standard_normal(2)
+                self.goals[-1] = self.np_random[0].standard_normal(2)
                 self.goals[-1] /= np.maximum(
                     np.linalg.norm(self.goals[-1]), 1e-5
                 )
                 self.goals[-1] *= self.goal_area
             else:
-                self.goals[-1] = self.np_random.uniform(
+                self.goals[-1] = self.np_random[0].uniform(
                     -self.goal_area, self.goal_area, size=(2,)
                 )
 

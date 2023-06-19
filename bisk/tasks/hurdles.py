@@ -62,7 +62,7 @@ class BiskHurdlesEnv(BiskSingleRobotEnv):
         self.max_hurdles_cleared = 0
         xpos = 1
         intervals = (
-            self.np_random.uniform(3, 6, size=(self.n_hurdles,))
+            self.np_random[0].uniform(3, 6, size=(self.n_hurdles,))
             * self.world_scale
         )
         if self.fixed_height:
@@ -71,7 +71,7 @@ class BiskHurdlesEnv(BiskSingleRobotEnv):
             )
         else:
             heights = (
-                self.np_random.uniform(
+                self.np_random[0].uniform(
                     0.1, self.max_height, size=(self.n_hurdles,)
                 )
                 * self.world_scale
@@ -118,7 +118,7 @@ class BiskHurdlesEnv(BiskSingleRobotEnv):
     def step(self, action):
         mhbefore = self.max_hurdles_cleared
         xpos1 = self.robot_pos[0]
-        obs, reward, terminated, truncated, info = super().step(action)
+        return_vals = list(super().step(action)); obs, reward, terminated, truncated, info = return_vals if gym.__version__ == '0.26.1' else return_vals[:3] + [None] + [return_vals[-1]]
         xpos2 = self.robot_pos[0]
 
         score = 1 if self.max_hurdles_cleared > mhbefore else 0
@@ -129,4 +129,4 @@ class BiskHurdlesEnv(BiskSingleRobotEnv):
         if info.get('fell_over', False):
             terminated = True
             reward = -1
-        return obs, reward, terminated, truncated, info
+        return (obs, reward, terminated, truncated, info) if gym.__version__ == '0.26.1' else (obs, reward, terminated, info)

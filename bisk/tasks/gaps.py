@@ -133,36 +133,36 @@ class BiskGapsEnv(BiskSingleRobotEnv):
         else:
             if self.robot.startswith('quadruped'):
                 gaps = (
-                    self.np_random.uniform(0.8, 1.55, size=(self.n_platforms,))
+                    self.np_random[0].uniform(0.8, 1.55, size=(self.n_platforms,))
                     * self.world_scale
                 )
                 ms = max(self.max_size * 2, 2.0)
                 sizes = (
-                    self.np_random.uniform(2.0, ms, size=(self.n_platforms,))
+                    self.np_random[0].uniform(2.0, ms, size=(self.n_platforms,))
                     * self.world_scale
                 )
             elif self.robot.startswith('humanoid'):
                 gaps = (
-                    self.np_random.uniform(
+                    self.np_random[0].uniform(
                         self.min_gap, self.max_gap, size=(self.n_platforms,)
                     )
                     * self.world_scale
                 )
                 sizes = (
-                    self.np_random.uniform(
+                    self.np_random[0].uniform(
                         1.0, self.max_size, size=(self.n_platforms,)
                     )
                     * self.world_scale
                 )
             else:
                 gaps = (
-                    self.np_random.uniform(
+                    self.np_random[0].uniform(
                         self.min_gap, self.max_gap, size=(self.n_platforms,)
                     )
                     * self.world_scale
                 )
                 sizes = (
-                    self.np_random.uniform(
+                    self.np_random[0].uniform(
                         0.5, self.max_size, size=(self.n_platforms,)
                     )
                     * self.world_scale
@@ -226,7 +226,7 @@ class BiskGapsEnv(BiskSingleRobotEnv):
         mpbefore = self.max_platforms_reached
         self.touched_gap = False
         xpos1 = self.robot_pos[0]
-        obs, reward, terminated, truncated, info = super().step(action)
+        return_vals = list(super().step(action)); obs, reward, terminated, truncated, info = return_vals if gym.__version__ == '0.26.1' else return_vals[:3] + [None] + [return_vals[-1]]
         xpos2 = self.robot_pos[0]
 
         score = 1 if self.max_platforms_reached > mpbefore else 0
@@ -241,4 +241,4 @@ class BiskGapsEnv(BiskSingleRobotEnv):
             terminated = True
             reward = -1
             info['score'] -= 1
-        return obs, reward, terminated, truncated, info
+        return (obs, reward, terminated, truncated, info) if gym.__version__ == '0.26.1' else (obs, reward, terminated, info)
