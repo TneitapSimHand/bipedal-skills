@@ -29,6 +29,8 @@ class BiskEnv(gym.Env):
         from dm_control import mjcf
         if self.p is not None:
             raise RuntimeError('Simulation already initialized')
+        root.compiler.autolimits = True # same as robopianist
+        # root.compiler.angle = "radian"
         self.p = mjcf.Physics.from_mjcf_model(root)
         self.model = root
         self.frameskip = frameskip

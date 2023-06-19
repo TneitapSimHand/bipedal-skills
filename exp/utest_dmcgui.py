@@ -15,7 +15,7 @@ import bisk
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task', type=str,default='stairs')
+    parser.add_argument('--task', type=str,default='goalwall')
     parser.add_argument('--robot', type=str, default='walker')
     # parser.add_argument('--robot', type=str, default='humanoid')
     # parser.add_argument('--robot', type=str, default='halfcheetah')
@@ -79,7 +79,11 @@ if __name__ == "__main__":
             a[2] = -1
         '''
         d = False
-        obs, r, d, t, i = env.step(a)
+        if gym.__version__ == '0.26.1': 
+            obs, r, d, t, i = env.step(a) # gym26: 4 outs
+        else: 
+            obs, r, d, i = env.step(a)
+            t = False
         step += 1
         if step > 200 or d or t:
             print(r)
